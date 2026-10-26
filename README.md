@@ -4,6 +4,8 @@
 
 타입 검사는 `npm run typecheck`, 빌드는 `npm run build`로 실행합니다.
 
+배포 설정은 [Netlify SSR](docs/NETLIFY_SSR.md), [Vercel SSR 이전 준비](docs/VERCEL_SSR.md)를 참고하세요.
+
 Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 
 ## Setup
