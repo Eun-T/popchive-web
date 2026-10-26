@@ -1,0 +1,164 @@
+@import 'tailwindcss';
+@import './pretendard.css';
+
+:root {
+  /* RN code: docs/RN_DESIGN_SYSTEM_AUDIT.md §4.1. */
+  --ds-brand: #22c55e;
+  --ds-brand-soft: #dcfce7;
+  --ds-brand-strong: #15803d;
+  --ds-background: #ffffff;
+  --ds-surface: #f8fafc;
+  --ds-text: #111827;
+  --ds-secondary: #6b7280;
+  --ds-border: #e5e7eb;
+  --ds-tag: #f3f4f6;
+  --ds-favorite: #ff5a6e;
+  --ds-filter-selected: #111827;
+  --ds-filter-on-selected: #ffffff;
+  --ds-info-soft: #dbeafe;
+  --ds-info-strong: #1d4ed8;
+  --ds-tag-text: #4b5563;
+
+  /* Web additions: primary text, focus, disabled and motion roles. */
+  --ds-accent-purple: #7839ef;
+  --ds-accent-purple-soft: #f0e7ff;
+  --ds-on-brand: var(--ds-text);
+  --ds-focus: var(--ds-brand-strong);
+  --ds-disabled-bg: var(--ds-tag);
+  --ds-disabled-text: var(--ds-secondary);
+  --ds-motion-fast: 120ms;
+  --ds-font-sans: 'Pretendard Variable', Pretendard, 'Hiragino Sans',
+    'Yu Gothic', Meiryo, 'Noto Sans JP', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* RN spacing converted to rem (16px reference); no root-size lock. */
+  --ds-space-0: 0rem;
+  --ds-space-2: 0.125rem;
+  --ds-space-4: 0.25rem;
+  --ds-space-6: 0.375rem;
+  --ds-space-8: 0.5rem;
+  --ds-space-10: 0.625rem;
+  --ds-space-12: 0.75rem;
+  --ds-space-16: 1rem;
+  --ds-space-20: 1.25rem;
+  --ds-space-24: 1.5rem;
+  --ds-space-28: 1.75rem;
+  --ds-space-32: 2rem;
+  --ds-space-40: 2.5rem;
+  --ds-space-48: 3rem;
+  --ds-space-56: 3.5rem;
+  --ds-space-60: 3.75rem;
+  --ds-radius-4: 0.25rem;
+  --ds-radius-8: 0.5rem;
+  --ds-radius-12: 0.75rem;
+  --ds-radius-16: 1rem;
+  --ds-radius-24: 1.5rem;
+  --ds-radius-full: 9999px; /* Web conversion of RN full=999. */
+  --ds-display-size: 2rem;
+  --ds-display-leading: 2.5rem;
+  --ds-title-l-size: 1.5rem;
+  --ds-title-l-leading: 2rem;
+  --ds-title-m-size: 1.25rem;
+  --ds-title-m-leading: 1.75rem;
+  --ds-title-s-size: 1.125rem;
+  --ds-title-s-leading: 1.625rem;
+  --ds-body-size: 1rem;
+  --ds-body-leading: 1.5rem;
+  --ds-label-size: 0.875rem;
+  --ds-label-leading: 1.25rem;
+  --ds-caption-size: 0.75rem;
+  --ds-caption-leading: 1.125rem;
+}
+
+@theme inline {
+  --font-sans: var(--ds-font-sans);
+  --color-brand: var(--ds-brand);
+  --color-brand-soft: var(--ds-brand-soft);
+  --color-brand-strong: var(--ds-brand-strong);
+  --color-background: var(--ds-background);
+  --color-surface: var(--ds-surface);
+  --color-foreground: var(--ds-text);
+  --color-secondary: var(--ds-secondary);
+  --color-border: var(--ds-border);
+  --color-tag: var(--ds-tag);
+  --color-tag-text: var(--ds-tag-text);
+  --color-favorite: var(--ds-favorite);
+  --color-filter-selected: var(--ds-filter-selected);
+  --color-filter-on-selected: var(--ds-filter-on-selected);
+  --color-info-soft: var(--ds-info-soft);
+  --color-info-strong: var(--ds-info-strong);
+  --color-on-brand: var(--ds-on-brand);
+  --color-focus: var(--ds-focus);
+  --color-disabled-bg: var(--ds-disabled-bg);
+  --color-disabled-text: var(--ds-disabled-text);
+  /* Explicit rn prefix: p-rn-16 = 1rem, unlike Tailwind p-16 = 4rem. */
+  --spacing-rn-0: var(--ds-space-0);
+  --spacing-rn-2: var(--ds-space-2);
+  --spacing-rn-4: var(--ds-space-4);
+  --spacing-rn-6: var(--ds-space-6);
+  --spacing-rn-8: var(--ds-space-8);
+  --spacing-rn-10: var(--ds-space-10);
+  --spacing-rn-12: var(--ds-space-12);
+  --spacing-rn-16: var(--ds-space-16);
+  --spacing-rn-20: var(--ds-space-20);
+  --spacing-rn-24: var(--ds-space-24);
+  --spacing-rn-28: var(--ds-space-28);
+  --spacing-rn-32: var(--ds-space-32);
+  --spacing-rn-40: var(--ds-space-40);
+  --spacing-rn-48: var(--ds-space-48);
+  --spacing-rn-56: var(--ds-space-56);
+  --spacing-rn-60: var(--ds-space-60);
+  --radius-rn-4: var(--ds-radius-4);
+  --radius-rn-8: var(--ds-radius-8);
+  --radius-rn-12: var(--ds-radius-12);
+  --radius-rn-16: var(--ds-radius-16);
+  --radius-rn-24: var(--ds-radius-24);
+  --radius-pill: var(--ds-radius-full);
+  --text-display: var(--ds-display-size);
+  --text-display--line-height: var(--ds-display-leading);
+  --text-title-l: var(--ds-title-l-size);
+  --text-title-l--line-height: var(--ds-title-l-leading);
+  --text-title-m: var(--ds-title-m-size);
+  --text-title-m--line-height: var(--ds-title-m-leading);
+  --text-title-s: var(--ds-title-s-size);
+  --text-title-s--line-height: var(--ds-title-s-leading);
+  --text-body: var(--ds-body-size);
+  --text-body--line-height: var(--ds-body-leading);
+  --text-label: var(--ds-label-size);
+  --text-label--line-height: var(--ds-label-leading);
+  --text-caption: var(--ds-caption-size);
+  --text-caption--line-height: var(--ds-caption-leading);
+}
+
+/* Complete recipes; text-* alone sets size and line height. */
+@utility type-display { @apply text-display font-bold; }
+@utility type-title-l { @apply text-title-l font-bold; }
+@utility type-title-m { @apply text-title-m font-bold; }
+@utility type-title-s { @apply text-title-s font-semibold; }
+@utility type-body { @apply text-body font-normal; }
+@utility type-label { @apply text-label font-medium; }
+@utility type-caption { @apply text-caption font-normal; }
+
+@layer base {
+  html { color-scheme: light; }
+  body { @apply bg-background font-sans text-body text-foreground; }
+  button:not(:disabled) { cursor: pointer; }
+  :focus-visible {
+    outline: 2px solid var(--ds-focus);
+    outline-offset: 3px;
+  }
+  ::selection { background: var(--ds-brand-soft); color: var(--ds-text); }
+}
+
+@layer components {
+  .ds-control {
+    transition-property: background-color, color, border-color;
+    transition-duration: var(--ds-motion-fast);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ds-control { transition-duration: 0s; }
+  }
+  @media (forced-colors: active) {
+    .ds-control[aria-pressed='true'] { outline: 2px solid Highlight; }
+  }
+}

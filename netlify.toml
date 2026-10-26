@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NITRO_PRESET = "netlify"
+
+# Nitro generates the internal Node Functions handler and its routing metadata.
+# Do not add an SPA redirect to index.html or override the functions directory.
+# Register NUXT_* values in the Netlify UI with Build and Functions availability.
