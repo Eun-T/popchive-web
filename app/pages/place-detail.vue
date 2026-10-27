@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { ArrowUpRight, CalendarDays, Clock, MapPin, X } from "@lucide/vue";
+import {
+  CalendarDays,
+  ChevronDown,
+  Clock,
+  MapPin,
+  Ticket,
+  X,
+} from "@lucide/vue";
 import type { PopupDetail } from "../../shared/types/popup";
 import { popupSeoDescription } from "#shared/utils/seo";
 import PopupRecommendations from "~/components/places/PopupRecommendations.vue";
+import PopupDirectionsMenu from "~/components/places/PopupDirectionsMenu.vue";
 import {
   formatPopupDetailPeriod,
   popupCalendarDate,
@@ -73,6 +81,16 @@ const metadata = computed(() =>
     popup.value?.regionName,
   ].filter((label): label is string => !!label),
 );
+const directionsDestination = computed(() => {
+  const item = popup.value;
+  if (!item) return null;
+  const { latitude, longitude } = item;
+  const hasCoordinates = typeof latitude === 'number' && Number.isFinite(latitude) && Math.abs(latitude) <= 90
+    && typeof longitude === 'number' && Number.isFinite(longitude) && Math.abs(longitude) <= 180;
+  const destination = hasCoordinates ? `${latitude},${longitude}` : item.address?.trim();
+  if (!destination) return null;
+  return destination;
+});
 const imagesExpanded = ref(false);
 const visibleImages = computed(() => {
   const images = popup.value?.contentImageUrls ?? [];
@@ -82,6 +100,8 @@ const hiddenImageCount = computed(() =>
   Math.max(0, (popup.value?.contentImageUrls.length ?? 0) - 2),
 );
 const selectedTab = ref<"info" | "reviews">("info");
+const noticeOpen = ref(false);
+const benefitsOpen = ref(false);
 const tabs = [
   { id: "info", label: "팝업 정보" },
   { id: "reviews", label: "방문 리뷰" },
@@ -206,10 +226,17 @@ usePopchiveSeo({
             :class="`detail-status--${dDay.state}`"
           >
             <span>{{ dDay.label }}</span>
-            <span v-if="dDayHint" class="detail-status__hint">{{ dDayHint }}</span>
+            <span v-if="dDayHint" class="detail-status__hint">{{
+              dDayHint
+            }}</span>
           </div>
           <section
-            v-if="period || popup.operatingHours || popup.address"
+            v-if="
+              period ||
+              popup.operatingHours ||
+              popup.address ||
+              popup.reservationUrl?.trim()
+            "
             class="detail-section"
             aria-labelledby="basic-info-title"
           >
@@ -234,16 +261,31 @@ usePopchiveSeo({
                   >
                 </dd>
               </div>
+              <div v-if="popup.reservationUrl?.trim()">
+                <dt><Ticket :size="16" aria-hidden="true" />예약</dt>
+                <dd class="detail-reservation-value">
+                  <a
+                    :href="popup.reservationUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="detail-reservation"
+                  >
+                    예약 페이지로 이동
+                  </a>
+                </dd>
+              </div>
             </dl>
           </section>
-          <a
-            v-if="popup.officialChannelUrl"
-            :href="popup.officialChannelUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="detail-official"
-            >공식 채널 보기 <ArrowUpRight :size="18" aria-hidden="true"
-          /></a>
+          <div v-if="popup.officialChannelUrl || directionsDestination" class="detail-actions">
+            <a
+              v-if="popup.officialChannelUrl"
+              :href="popup.officialChannelUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="detail-official"
+              >공식 채널</a>
+            <PopupDirectionsMenu v-if="directionsDestination" :destination="directionsDestination" :place-name="popup.name" :address="popup.address" :latitude="popup.latitude" :longitude="popup.longitude" :country-code="popup.countryCode" />
+          </div>
         </div>
       </div>
       <div class="detail-tabs" role="tablist" aria-label="팝업 상세 콘텐츠">
@@ -272,28 +314,67 @@ usePopchiveSeo({
         class="detail-panel"
       >
         <section
-          v-if="popup.notice?.trim() || popup.reservationUrl?.trim()"
+          v-if="popup.notice?.trim()"
+          class="detail-accordion"
           aria-labelledby="notice-title"
         >
-          <h2 id="notice-title">공지사항</h2>
-          <div class="detail-notice">
-            <p v-if="popup.notice?.trim()" class="detail-copy">
-              {{ popup.notice }}
-            </p>
-            <a
-              v-if="popup.reservationUrl?.trim()"
-              :href="popup.reservationUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="detail-reservation"
-              >예약 페이지 보기</a
+          <h2 id="notice-title">
+            <button
+              type="button"
+              class="detail-accordion__trigger"
+              :aria-expanded="noticeOpen"
+              aria-controls="notice-content"
+              @click="noticeOpen = !noticeOpen"
             >
+              <span>공지사항</span>
+              <ChevronDown :size="20" aria-hidden="true" />
+            </button>
+          </h2>
+          <div
+            id="notice-content"
+            class="detail-accordion__content"
+            :class="{ 'is-open': noticeOpen }"
+            :aria-hidden="!noticeOpen"
+            :inert="!noticeOpen"
+          >
+            <div class="detail-accordion__clip">
+              <div class="detail-accordion__body">
+                <p v-if="popup.notice?.trim()" class="detail-copy">
+                  {{ popup.notice }}
+                </p>
+              </div>
+            </div>
           </div>
         </section>
-        <section v-if="popup.benefits?.trim()" aria-labelledby="benefits-title">
-          <h2 id="benefits-title">혜택</h2>
-          <div class="detail-benefits">
-            <p class="detail-copy">{{ popup.benefits }}</p>
+        <section
+          v-if="popup.benefits?.trim()"
+          class="detail-accordion"
+          aria-labelledby="benefits-title"
+        >
+          <h2 id="benefits-title">
+            <button
+              type="button"
+              class="detail-accordion__trigger"
+              :aria-expanded="benefitsOpen"
+              aria-controls="benefits-content"
+              @click="benefitsOpen = !benefitsOpen"
+            >
+              <span>혜택</span>
+              <ChevronDown :size="20" aria-hidden="true" />
+            </button>
+          </h2>
+          <div
+            id="benefits-content"
+            class="detail-accordion__content"
+            :class="{ 'is-open': benefitsOpen }"
+            :aria-hidden="!benefitsOpen"
+            :inert="!benefitsOpen"
+          >
+            <div class="detail-accordion__clip">
+              <div class="detail-accordion__body">
+                <p class="detail-copy">{{ popup.benefits }}</p>
+              </div>
+            </div>
           </div>
         </section>
         <section aria-labelledby="introduction-title">
@@ -532,25 +613,34 @@ usePopchiveSeo({
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 12px;
   font-size: 14px;
   text-decoration: underline;
+}
+.detail-facts dd.detail-reservation-value {
+  white-space: normal;
+}
+.detail-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin-top: 24px;
 }
 .detail-official {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 8px;
-  width: 100%;
+  min-width: 0;
   min-height: 44px;
-  margin-top: 24px;
   padding: 10px 16px;
   border-radius: 5px;
-  background: #171717;
-  color: white;
   font-size: 14px;
   font-weight: 600;
 }
+.detail-official { background: #171717; color: white; }
+.detail-actions svg { flex-shrink: 0; }
 .detail-tabs {
   display: flex;
   gap: 24px;
@@ -576,18 +666,83 @@ usePopchiveSeo({
 .detail-images {
   margin-top: 32px;
 }
-.detail-benefits {
-  padding: 16px;
-  margin-top: 12px;
-  border-radius: 5px;
+.detail-accordion {
+  border: 0;
+  border-radius: 8px;
   background: #f5f5f7;
 }
-.detail-notice {
-  padding: 16px;
+.detail-panel > .detail-accordion + .detail-accordion {
   margin-top: 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 5px;
-  background: #ffffff;
+}
+.detail-accordion h2 {
+  margin: 0;
+}
+.detail-accordion__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  transition:
+    min-height 200ms ease-in-out,
+    padding-bottom 200ms ease-in-out;
+}
+.detail-accordion__trigger svg {
+  flex-shrink: 0;
+  transition: transform 200ms ease-in-out;
+}
+.detail-accordion__trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.detail-accordion__trigger[aria-expanded="true"] {
+  min-height: 0;
+  padding-bottom: 0;
+}
+.detail-accordion__content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 200ms ease-in-out;
+}
+.detail-accordion__content.is-open {
+  grid-template-rows: 1fr;
+}
+.detail-accordion__clip {
+  min-height: 0;
+  overflow: hidden;
+}
+.detail-accordion__body {
+  padding: 12px 16px 16px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 200ms ease-in-out,
+    transform 200ms ease-in-out;
+}
+.detail-accordion__content.is-open .detail-accordion__body {
+  opacity: 1;
+  transform: translateY(0);
+}
+.detail-accordion__body .detail-copy {
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-accordion__trigger,
+  .detail-accordion__trigger svg,
+  .detail-accordion__content,
+  .detail-accordion__body {
+    transition: none;
+  }
+  .detail-accordion__body {
+    transform: none;
+  }
 }
 .detail-image-grid {
   display: grid;

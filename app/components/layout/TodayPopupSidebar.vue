@@ -1,37 +1,79 @@
 <script setup lang="ts">
-// Share the server's system date with hydration so the initial markup stays consistent.
-const today = useState("today-popup-sidebar-date", () =>
-  new Date().toISOString(),
+import type { TodayPopupsResponse } from "#shared/types/todayPopups";
+import { endingSoonToday } from "#shared/utils/endingSoon";
+import { popupDayStatus } from "~/utils/popupDates";
+
+// Reuse the server calendar date and initial response during hydration.
+const today = useState("today-popup-sidebar-day", () => endingSoonToday());
+const key = computed(() => `sidebar:today:${today.value}:KR:ko`);
+const { data, status, error, refresh } = await useFetch<TodayPopupsResponse>(
+  "/api/sidebar/today",
+  {
+    key,
+    server: true,
+    dedupe: "defer",
+    retry: 0,
+  },
 );
 const todayLabel = computed(() =>
   new Intl.DateTimeFormat("ko-KR", {
     month: "long",
     day: "numeric",
     timeZone: "Asia/Seoul",
-  }).format(new Date(today.value)),
+  }).format(new Date(`${today.value}T00:00:00+09:00`)),
 );
 
-// UI-only mock data. These are sample listings, not live popup information.
-const popups = [
-  {
-    title: "아카이브 셀렉트 팝업",
-    periodText: "오늘까지",
-    location: "서울 성수",
-    statusText: "진행 중",
-  },
-  {
-    title: "라이프스타일 마켓",
-    periodText: "20:00 종료",
-    location: "서울 여의도",
-    statusText: "진행 중",
-  },
-  {
-    title: "커피 셀렉트 스토어",
-    periodText: "19:00 종료",
-    location: "서울 연남",
-    statusText: "진행 중",
-  },
-];
+const failedImages = ref(new Set<string>());
+const popups = computed(() =>
+  data.value?.asOf === today.value
+    ? data.value.items.map((popup) => ({
+        ...popup,
+        periodText:
+          popup.endDate === today.value
+            ? "오늘까지"
+            : popupDayStatus(popup, today.value)?.label,
+      }))
+    : [],
+);
+let timer: ReturnType<typeof setInterval> | undefined;
+let lastImageRefresh = 0;
+function refreshIfNeeded() {
+  if (document.hidden) return;
+  const nextDay = endingSoonToday();
+  if (today.value !== nextDay) {
+    today.value = nextDay; // The reactive key starts one new request.
+    failedImages.value.clear();
+    return;
+  }
+  if (status.value === "pending") return;
+  // Existing signed images expire after five minutes. This is not a random re-roll.
+  if (data.value && Date.now() - data.value.fetchedAt >= 180_000)
+    void refresh();
+}
+function onImageError(src: string) {
+  failedImages.value.add(src);
+  const now = Date.now();
+  if (
+    status.value !== "pending" &&
+    data.value &&
+    now - data.value.fetchedAt >= 180_000 &&
+    now - lastImageRefresh >= 60_000
+  ) {
+    lastImageRefresh = now;
+    void refresh();
+  }
+}
+onMounted(() => {
+  refreshIfNeeded(); // A fresh SSR payload does not trigger another fetch.
+  timer = setInterval(refreshIfNeeded, 30_000);
+  document.addEventListener("visibilitychange", refreshIfNeeded);
+  window.addEventListener("pageshow", refreshIfNeeded);
+});
+onBeforeUnmount(() => {
+  clearInterval(timer);
+  document.removeEventListener("visibilitychange", refreshIfNeeded);
+  window.removeEventListener("pageshow", refreshIfNeeded);
+});
 </script>
 
 <template>
@@ -41,25 +83,59 @@ const popups = [
       <time :datetime="today">{{ todayLabel }}</time>
     </header>
     <p class="today-popup-sidebar__caption">오늘 진행 중인 팝업</p>
-    <ol class="today-popup-sidebar__list">
+    <p v-if="error" class="today-popup-sidebar__state" role="status">
+      오늘의 팝업을 불러오지 못했습니다.
+    </p>
+    <p
+      v-else-if="status === 'pending' && !popups.length"
+      class="today-popup-sidebar__state"
+      role="status"
+    >
+      오늘의 팝업을 불러오는 중입니다.
+    </p>
+    <p
+      v-else-if="!popups.length"
+      class="today-popup-sidebar__state"
+      role="status"
+    >
+      오늘 진행 중인 팝업이 없습니다.
+    </p>
+    <ol v-else class="today-popup-sidebar__list">
       <li
-        v-for="(popup, index) in popups"
-        :key="popup.title"
+        v-for="popup in popups"
+        :key="popup.publicId"
         class="today-popup-sidebar__item"
       >
-        <span class="today-popup-sidebar__index" aria-hidden="true">{{
-          String(index + 1).padStart(2, "0")
-        }}</span>
-        <div class="today-popup-sidebar__content">
-          <h3 :title="popup.title">{{ popup.title }}</h3>
-          <p class="today-popup-sidebar__details">
-            <span class="today-popup-sidebar__status">{{
-              popup.statusText
-            }}</span>
-            <span>{{ popup.periodText }}</span>
-          </p>
-          <p class="today-popup-sidebar__location">{{ popup.location }}</p>
-        </div>
+        <NuxtLink
+          :to="`/places/${encodeURIComponent(popup.publicId)}`"
+          :prefetch="false"
+          class="today-popup-sidebar__link"
+        >
+          <div class="today-popup-sidebar__content">
+            <h3 :title="popup.name">{{ popup.name }}</h3>
+            <p class="today-popup-sidebar__details">
+              <span class="today-popup-sidebar__status">진행 중</span>
+              <span>{{ popup.periodText }}</span>
+            </p>
+            <p v-if="popup.regionName" class="today-popup-sidebar__location">
+              {{ popup.regionName }}
+            </p>
+          </div>
+          <span
+            v-if="popup.coverImageUrl && !failedImages.has(popup.coverImageUrl)"
+            class="today-popup-sidebar__thumbnail"
+          >
+            <img
+              :src="popup.coverImageUrl"
+              alt=""
+              width="52"
+              height="52"
+              loading="lazy"
+              decoding="async"
+              @error="onImageError(popup.coverImageUrl)"
+            />
+          </span>
+        </NuxtLink>
       </li>
     </ol>
   </aside>
@@ -113,23 +189,41 @@ const popups = [
   list-style: none;
 }
 .today-popup-sidebar__item {
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 10px;
   padding-block: 14px;
+}
+.today-popup-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+.today-popup-sidebar__state {
+  margin-top: 16px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 20px;
 }
 .today-popup-sidebar__item + .today-popup-sidebar__item {
   border-top: 1px solid #f0f1f3;
 }
-.today-popup-sidebar__index {
-  color: var(--ds-accent-purple);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 20px;
-  font-variant-numeric: tabular-nums;
-}
 .today-popup-sidebar__content {
+  flex: 1;
   min-width: 0;
+}
+.today-popup-sidebar__thumbnail {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.today-popup-sidebar__thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .today-popup-sidebar__content h3 {
   overflow: hidden;

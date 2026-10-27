@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
-import { Heart, MapPin, SlidersHorizontal, X } from "@lucide/vue";
+import { Heart, LoaderCircle, MapPin, SlidersHorizontal, X } from "@lucide/vue";
 import PlacesEndingSoon from "~/components/places/PlacesEndingSoon.vue";
 import PlacesVenues from "~/components/places/PlacesVenues.vue";
 import PlacesRegions from "~/components/places/PlacesRegions.vue";
@@ -296,6 +296,26 @@ onBeforeUnmount(() => {
   restorePageScroll();
 });
 
+const loadMoreSentinel = ref<HTMLElement | null>(null);
+let pageObserver: IntersectionObserver | undefined;
+const canAutoLoad = computed(() => selectedTab.value === 'all' && !isFilterOpen.value
+  && listStatus.value === 'success' && !listError.value && !!nextCursor.value
+  && !moreLoading.value && !moreError.value);
+function observeNextPage() {
+  pageObserver?.disconnect();
+  if (loadMoreSentinel.value && canAutoLoad.value) pageObserver?.observe(loadMoreSentinel.value);
+}
+onMounted(() => {
+  if (!('IntersectionObserver' in window)) return;
+  pageObserver = new IntersectionObserver(entries => {
+    if (canAutoLoad.value && entries.some(entry => entry.isIntersecting)) void loadMore();
+  }, { rootMargin: '0px 0px 300px 0px', threshold: 0 });
+  observeNextPage();
+});
+// Re-observe after appending so a still-visible sentinel can fill a tall viewport.
+watch([loadMoreSentinel, canAutoLoad, nextCursor], observeNextPage, { flush: 'post' });
+onBeforeUnmount(() => pageObserver?.disconnect());
+
 const failedImages = ref(new Set<string>());
 // Serialize the SSR clock in the payload; only update it after hydration.
 const cardNow = useState('places:card-now', () => Date.now());
@@ -437,9 +457,15 @@ function formatPeriod(popup: PlacePopup) {
           </div>
         </li>
       </ul>
-      <div v-if="nextCursor && !listError && listStatus === 'success'" class="places-pagination">
-        <p v-if="moreError" role="alert">다음 팝업을 불러오지 못했습니다.</p>
-        <button type="button" class="places-list-action" :disabled="moreLoading" @click="loadMore">{{ moreLoading ? '불러오는 중…' : moreError ? '다시 시도' : '더 보기' }}</button>
+      <div v-if="nextCursor && !listError && listStatus === 'success'" ref="loadMoreSentinel" class="places-pagination">
+        <div v-if="moreLoading" class="places-pagination__loading" role="status">
+          <LoaderCircle :size="20" class="places-pagination__spinner" aria-hidden="true" />
+          <span class="sr-only">팝업을 더 불러오는 중입니다.</span>
+        </div>
+        <template v-else-if="moreError">
+          <p role="alert">다음 팝업을 불러오지 못했습니다.</p>
+          <button type="button" class="places-list-action" @click="loadMore">다시 시도</button>
+        </template>
       </div>
     </section>
 
@@ -570,7 +596,11 @@ function formatPeriod(popup: PlacePopup) {
 </template>
 
 <style scoped>
-.places-pagination { display: grid; justify-items: center; gap: 12px; margin-top: 28px; color: var(--ds-secondary); font-size: 14px; }
+.places-pagination { display: grid; justify-items: center; gap: 12px; min-height: 1px; margin-top: 28px; color: var(--ds-secondary); font-size: 14px; }
+.places-pagination__loading { display: flex; align-items: center; justify-content: center; }
+.places-pagination__spinner { animation: places-loading-spin 1s linear infinite; }
+@keyframes places-loading-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .places-pagination__spinner { animation: none; } }
 .places-list-action { padding: 8px 16px; border: 1px solid var(--ds-border); border-radius: 8px; color: var(--ds-text); }
 .places-list-action:disabled { opacity: 0.5; cursor: default; }
 .places-tabs { scroll-margin-top: 80px; }

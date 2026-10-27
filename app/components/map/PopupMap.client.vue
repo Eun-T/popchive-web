@@ -158,6 +158,7 @@ onMounted(async () => {
     if (disposed || !canvas.value || state.value === 'sdk-error') return
     map = new sdk.Map(canvas.value, {
       center: { lat: 37.5665, lng: 126.9780 }, zoom: 12,
+      gestureHandling: 'greedy',
       // Google permits DEMO_MAP_ID for development. Set your own JavaScript map ID for production.
       mapId: String(config.public.googleMapsMapId || '').trim() || 'DEMO_MAP_ID',
       mapTypeControl: false, streetViewControl: false,

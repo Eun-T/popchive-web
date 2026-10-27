@@ -11,6 +11,9 @@ const items: { label: string; to: string | null; visible?: boolean }[] = [
 ]
 const visibleItems = items.filter(item => item.visible !== false)
 const route = useRoute()
+function isActive(to: string) {
+  return route.path === to || (to === '/places' && route.path.startsWith('/places/'))
+}
 </script>
 
 <template>
@@ -34,9 +37,9 @@ const route = useRoute()
             <NuxtLink
               v-if="item.to"
               :to="item.to"
-              :aria-current="route.path === item.to ? 'page' : undefined"
+              :aria-current="isActive(item.to) ? 'page' : undefined"
               class="app-header__link ds-control"
-              :class="{ 'app-header__link--current': route.path === item.to }"
+              :class="{ 'app-header__link--current': isActive(item.to) }"
             >{{ item.label }}</NuxtLink>
             <a
               v-else

@@ -15,6 +15,7 @@ export type GoogleMapsSdk = {
   Map: new (element: HTMLElement, options: {
     center: { lat: number; lng: number }; zoom: number; mapId: string
     mapTypeControl: boolean; streetViewControl: boolean
+    gestureHandling?: 'none' | 'cooperative' | 'greedy' | 'auto'
   }) => GoogleMap
   InfoWindow: new (options: { disableAutoPan: boolean }) => GoogleInfoWindow
   marker: { AdvancedMarkerElement: new (options: {

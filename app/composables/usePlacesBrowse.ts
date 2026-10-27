@@ -76,7 +76,7 @@ export function usePlacesBrowse(initialCategory?: number) {
   const filteredPopups = computed(() => [...new Map([...(firstPage.value?.items ?? []), ...appended.value].map(item => [item.id, item])).values()])
   async function loadMore() {
     const cursor = nextCursor.value
-    if (!cursor || moreLoading.value || pageRequest.status.value !== 'success') return
+    if (disposed || !cursor || seenCursors.has(cursor) || moreLoading.value || pageRequest.status.value !== 'success') return
     const version = generation, key = requestKey.value
     controller = new AbortController()
     moreLoading.value = true
