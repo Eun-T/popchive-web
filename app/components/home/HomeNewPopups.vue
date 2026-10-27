@@ -3,9 +3,10 @@ import { formatPopupCardPeriod } from '~/utils/formatPopupCardPeriod'
 import { ref } from 'vue'
 import useEmblaCarousel from 'embla-carousel-vue'
 import { Heart } from '@lucide/vue'
+import { webFeatures } from '~/config/features'
 import type { HomePopupCard } from '../../../shared/types/home'
 
-defineProps<{ items: readonly HomePopupCard[]; loading?: boolean; error?: boolean }>()
+withDefaults(defineProps<{ items: readonly HomePopupCard[]; loading?: boolean; error?: boolean; showFavorite?: boolean }>(), { showFavorite: true })
 const emit = defineEmits<{ 'image-error': [] }>()
 const failedSources = ref(new Set<string>())
 function onImageError(src: string | null) {
@@ -16,7 +17,7 @@ function onImageError(src: string | null) {
 const [emblaRef, emblaApi] = useEmblaCarousel({
   align: 'start',
   slidesToScroll: 1,
-  dragFree: false,
+  dragFree: true,
   loop: false,
   containScroll: 'trimSnaps',
 })
@@ -63,7 +64,7 @@ function onWheel(event: WheelEvent) {
             <img v-if="item.src && !failedSources.has(item.src)" :src="item.src" :alt="item.alt" width="172" height="172" loading="lazy" draggable="false" @error="onImageError(item.src)">
             <p v-else class="new-popups__image-state">이미지를 불러올 수 없습니다.</p>
             <NuxtLink :to="`/places/${encodeURIComponent(item.publicId)}`" class="new-popups__detail-link" :aria-label="`${item.title} 상세 보기`" draggable="false" />
-            <button type="button" disabled class="new-popups__favorite" aria-label="찜하기 (준비 중)" title="찜 기능 준비 중">
+            <button v-if="webFeatures.favorites && showFavorite" type="button" disabled class="new-popups__favorite" aria-label="찜하기 (준비 중)" title="찜 기능 준비 중">
               <Heart :size="24" :stroke-width="2" fill="#6B7280" aria-hidden="true" />
             </button>
           </div>

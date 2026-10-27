@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import {
-  ArrowUpRight,
-  CalendarDays,
-  Clock,
-  MapPin,
-  X,
-} from "@lucide/vue";
+import { ArrowUpRight, CalendarDays, Clock, MapPin, X } from "@lucide/vue";
 import type { PopupDetail } from "../../shared/types/popup";
-import { popupSeoDescription } from '#shared/utils/seo';
+import { popupSeoDescription } from "#shared/utils/seo";
+import PopupRecommendations from "~/components/places/PopupRecommendations.vue";
+import {
+  formatPopupDetailPeriod,
+  popupCalendarDate,
+  popupDayStatus,
+} from "~/utils/popupDates";
 
 // Keep the existing /places list page independent from this detail route.
 definePageMeta({
@@ -29,43 +29,49 @@ const {
   watch: false,
   retry: 0,
 });
-// Share the calendar date between SSR and hydration; both supported countries use UTC+9.
-const today = useState("popup-detail-today", () =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date()),
+// Reuse the SSR clock during hydration, then keep the local calendar date current.
+const detailNow = useState("popup-detail-now", () => Date.now());
+let dateClock: ReturnType<typeof setInterval> | undefined;
+onMounted(() => {
+  detailNow.value = Date.now();
+  dateClock = setInterval(() => {
+    detailNow.value = Date.now();
+  }, 60_000);
+});
+onBeforeUnmount(() => {
+  if (dateClock) clearInterval(dateClock);
+});
+const today = computed(() =>
+  popupCalendarDate(detailNow.value, popup.value?.countryCode ?? null),
 );
-const popupStatus = computed(() => {
-  const item = popup.value;
-  if (!item) return null;
-  if (item.endDate && item.endDate < today.value) return "종료";
-  if (item.startDate && item.startDate > today.value) return "오픈 예정";
-  if (item.startDate && item.startDate <= today.value) return "진행 중";
+const dDay = computed(() =>
+  popup.value
+    ? popupDayStatus(popup.value, today.value, {
+        open: "오픈 D-day",
+        end: "종료 D-day",
+      })
+    : null,
+);
+const dDayHint = computed(() => {
+  const label = dDay.value?.label;
+  if (!label || dDay.value?.state === "ended") return null;
+  const remaining = label.match(/^(?:오픈|종료) D-(\d+)$/)?.[1];
+  if (remaining) return `(${remaining}일 남음)`;
+  if (label === "오픈 D-day") return "(오늘 오픈)";
+  if (label === "종료 D-day") return "(오늘 종료)";
   return null;
 });
-const dDay = computed(() => {
-  if (popupStatus.value !== "진행 중" || !popup.value?.endDate) return null;
-  const days = Math.round(
-    (Date.parse(popup.value.endDate) - Date.parse(today.value)) / 86_400_000,
-  );
-  return days === 0 ? "D-day" : `D-${days}`;
-});
 const period = computed(() =>
-  [popup.value?.startDate, popup.value?.endDate]
-    .filter(Boolean)
-    .map((value) => value!.replaceAll("-", "."))
-    .join(" ~ "),
+  formatPopupDetailPeriod(
+    popup.value?.startDate ?? null,
+    popup.value?.endDate ?? null,
+  ),
 );
 const metadata = computed(() =>
   [
-    popup.value?.tags.map((tag) => tag.name).join(" · "),
+    ...(popup.value?.tags ?? []).map((tag) => tag.name),
     popup.value?.regionName,
-  ]
-    .filter(Boolean)
-    .join(" · "),
+  ].filter((label): label is string => !!label),
 );
 const imagesExpanded = ref(false);
 const visibleImages = computed(() => {
@@ -115,15 +121,24 @@ const unavailable = computed(() => isMock || !!error.value || !popup.value);
 if (import.meta.server && unavailable.value) {
   const event = useRequestEvent();
   if (event) {
-    const missing = isMock || error.value?.statusCode === 404 || error.value?.statusCode === 400;
+    const missing =
+      isMock ||
+      error.value?.statusCode === 404 ||
+      error.value?.statusCode === 400;
     setResponseStatus(event, missing ? 404 : 503);
-    event.node.res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-    if (!missing) event.node.res.setHeader('Retry-After', '60');
+    event.node.res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    if (!missing) event.node.res.setHeader("Retry-After", "60");
   }
 }
 usePopchiveSeo({
-  title: () => popup.value ? `${popup.value.name} | 팝카이브` : '팝업 정보를 찾을 수 없습니다 | 팝카이브',
-  description: () => popup.value ? popupSeoDescription(popup.value) : '요청한 팝업 정보를 확인할 수 없습니다.',
+  title: () =>
+    popup.value
+      ? `${popup.value.name} | 팝카이브`
+      : "팝업 정보를 찾을 수 없습니다 | 팝카이브",
+  description: () =>
+    popup.value
+      ? popupSeoDescription(popup.value)
+      : "요청한 팝업 정보를 확인할 수 없습니다.",
   image: () => popup.value?.coverImageUrl,
   noindex: unavailable,
 });
@@ -179,11 +194,19 @@ usePopchiveSeo({
           </p>
         </div>
         <div class="detail-info">
-          <p v-if="metadata" class="detail-meta">{{ metadata }}</p>
+          <div v-if="metadata.length" class="detail-meta">
+            <span v-for="(label, index) in metadata" :key="index">{{
+              label
+            }}</span>
+          </div>
           <h1 class="detail-title" :title="popup.name">{{ popup.name }}</h1>
-          <div v-if="popupStatus" class="detail-status">
-            <span>{{ popupStatus }}</span
-            ><span v-if="dDay">{{ dDay }}</span>
+          <div
+            v-if="dDay"
+            class="detail-status"
+            :class="`detail-status--${dDay.state}`"
+          >
+            <span>{{ dDay.label }}</span>
+            <span v-if="dDayHint" class="detail-status__hint">{{ dDayHint }}</span>
           </div>
           <section
             v-if="period || popup.operatingHours || popup.address"
@@ -254,7 +277,9 @@ usePopchiveSeo({
         >
           <h2 id="notice-title">공지사항</h2>
           <div class="detail-notice">
-            <p v-if="popup.notice?.trim()" class="detail-copy">{{ popup.notice }}</p>
+            <p v-if="popup.notice?.trim()" class="detail-copy">
+              {{ popup.notice }}
+            </p>
             <a
               v-if="popup.reservationUrl?.trim()"
               :href="popup.reservationUrl"
@@ -319,6 +344,18 @@ usePopchiveSeo({
         <h2>방문 리뷰</h2>
         <p class="detail-state">아직 등록된 방문 리뷰가 없어요.</p>
       </section>
+      <PopupRecommendations
+        :key="`${id}:nearby`"
+        :public-id="id"
+        kind="nearby"
+        :country-code="popup.countryCode"
+      />
+      <PopupRecommendations
+        :key="`${id}:similar`"
+        :public-id="id"
+        kind="similar"
+        :country-code="popup.countryCode"
+      />
       <dialog
         ref="posterDialog"
         class="poster-dialog"
@@ -394,9 +431,11 @@ usePopchiveSeo({
   overflow-wrap: anywhere;
 }
 .detail-meta {
-  color: #6b7280;
-  font-size: 13px;
-  line-height: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
   margin-bottom: 8px;
 }
 .detail-title {
@@ -410,21 +449,40 @@ usePopchiveSeo({
 }
 .detail-status {
   display: flex;
-  flex-wrap: wrap;
+  align-items: baseline;
+  flex-wrap: nowrap;
   gap: 8px;
   margin-top: 12px;
-  font-size: 12px;
+  font-size: 24px;
   font-weight: 600;
 }
-.detail-status span {
+.detail-status > span {
+  white-space: nowrap;
+}
+.detail-status__hint {
+  font-size: 13px;
+  color: #888888;
+  font-weight: 400;
+}
+.detail-status--upcoming {
+  color: #2563eb;
+}
+.detail-status--ongoing {
+  color: #16805d;
+}
+.detail-status--last-day {
+  color: #c05621;
+}
+.detail-status--ended {
+  color: #9ca3af;
+}
+.detail-meta span {
   padding: 4px 8px;
   border-radius: 5px;
   background: #f5f5f7;
 }
 .detail-section {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  margin-top: 28px;
 }
 .popup-detail h2 {
   font-size: 16px;

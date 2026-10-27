@@ -1,4 +1,4 @@
-export type HomeSection = 'main-banners' | 'new-popups' | 'now-hot'
+export type HomeSection = 'main-banners' | 'new-popups' | 'now-hot' | 'japan-new-popups'
 
 // Existing carousel/card props, adapted from the public backend DTO.
 export type HomePopupCard = {
@@ -7,6 +7,7 @@ export type HomePopupCard = {
   src: string | null
   alt: string
   title: string
+  heroTitle?: string | null
   period: string
   region: string
   width?: number

@@ -1,9 +1,9 @@
 import type { HomeSection, HomeSectionResponse } from '../../shared/types/home'
 
-export function useHomePopups(section: HomeSection) {
+export function useHomePopups(section: HomeSection, countryCode: 'KR' | 'JP' = 'KR') {
   const result = useFetch<HomeSectionResponse>(`/api/home/${section}`, {
-    key: `home:${section}:KR:ko`,
-    query: { countryCode: 'KR', languageCode: 'ko' },
+    key: `home:${section}:${countryCode}:ko`,
+    query: { countryCode, languageCode: 'ko' },
     server: true,
     dedupe: 'defer',
     retry: 0,

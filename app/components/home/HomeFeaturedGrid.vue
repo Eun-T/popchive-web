@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
 import type { HomePopupCard } from '../../../shared/types/home'
-import { carouselHeadlines } from '~/config/carouselHeadlines'
 import { featuredPopupDateLabel, featuredPopupToday } from '~/utils/featuredPopupDate'
 
 const props = defineProps<{ posters: readonly HomePopupCard[] }>()
@@ -50,7 +49,7 @@ onBeforeUnmount(() => clearInterval(dateTimer))
       <div class="home-featured-grid__gradient" aria-hidden="true" />
       <div class="home-featured-grid__info">
         <p v-if="poster.dateLabel" class="home-featured-grid__date">{{ poster.dateLabel }}</p>
-        <h2 class="home-featured-grid__title">{{ carouselHeadlines[poster.publicId]?.trim() || poster.title }}</h2>
+        <h2 class="home-featured-grid__title">{{ poster.heroTitle?.trim() ? poster.heroTitle : poster.title }}</h2>
       </div>
       <NuxtLink :to="`/places/${encodeURIComponent(poster.publicId)}`" class="home-featured-grid__link" :aria-label="`${poster.title} 상세 보기`" draggable="false" />
     </article>
@@ -122,7 +121,7 @@ onBeforeUnmount(() => clearInterval(dateTimer))
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  white-space: pre-line;
+  white-space: pre-wrap;
   font-size: clamp(18px, 2vw, 22px);
   font-weight: 700;
   line-height: 1.35;

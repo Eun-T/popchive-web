@@ -1,4 +1,5 @@
-import type { PlaceListQuery, PlaceOptions, PlacePage, PlacePopup, PlaceStatus } from '../../shared/types/places'
+import type { PlaceListQuery, PlaceOptions, PlacePage, PlacePopup, PlaceStatus, PlaceSort } from '../../shared/types/places'
+import { PLACE_PAGE_SIZE } from '../../shared/types/places'
 
 export type PlaceFilterKey = 'countryCode' | 'region' | 'category' | 'status'
 export type PlaceFilters = Record<PlaceFilterKey, string[]>
@@ -8,9 +9,12 @@ export function copyPlaceFilters(filters: PlaceFilters): PlaceFilters {
 }
 
 export function usePlacesBrowse(initialCategory?: number) {
+  const sort = ref<PlaceSort>('LATEST')
   const appliedFilters = ref({ ...emptyPlaceFilters(), category: initialCategory === undefined ? [] : [String(initialCategory)] })
   const draftFilters = ref(emptyPlaceFilters())
   const filtersQuery = computed<PlaceListQuery>(() => ({
+    limit: PLACE_PAGE_SIZE,
+    sort: sort.value,
     ...(appliedFilters.value.countryCode[0] ? { countryCode: appliedFilters.value.countryCode[0] as 'KR' | 'JP' } : {}),
     ...(appliedFilters.value.region.length ? { regionIds: [...appliedFilters.value.region].sort((a, b) => Number(a) - Number(b)).join(',') } : {}),
     ...(appliedFilters.value.category.length ? { tagIds: [...appliedFilters.value.category].sort((a, b) => Number(a) - Number(b)).join(',') } : {}),
@@ -18,7 +22,15 @@ export function usePlacesBrowse(initialCategory?: number) {
   }))
   const requestKey = computed(() => `places:all:${JSON.stringify(filtersQuery.value)}`)
   const optionsRequest = useFetch<PlaceOptions>('/api/places/options', { key: 'places:options', retry: 0, dedupe: 'defer' })
-  const pageRequest = useFetch<PlacePage>('/api/places/popups', { key: requestKey, query: filtersQuery, retry: 0, dedupe: 'cancel' })
+  const pageRequest = useAsyncData(requestKey, async (_nuxtApp, { signal }) => {
+    // Capture the query before awaiting; never attribute a late response to a new sort.
+    const key = requestKey.value
+    const query = { ...filtersQuery.value }
+    const page = await $fetch<PlacePage>('/api/places/popups', { query, signal, retry: 0 })
+    return { ...page, requestKey: key }
+  }, { server: true, dedupe: 'cancel' })
+  // Nuxt may carry previous data while a reactive key changes. Exclude it explicitly.
+  const firstPage = computed(() => pageRequest.data.value?.requestKey === requestKey.value ? pageRequest.data.value : undefined)
   const filterGroups = computed(() => [
     { key: 'countryCode' as const, label: '국가', multiple: false, options: [{ value: 'KR', label: '한국' }, { value: 'JP', label: '일본' }] },
     { key: 'region' as const, label: '지역', multiple: true, options: (optionsRequest.data.value?.regions ?? [])
@@ -43,7 +55,7 @@ export function usePlacesBrowse(initialCategory?: number) {
   const appended = ref<PlacePopup[]>([])
   // Derive the first cursor directly from SSR data; an async watch does not run during SSR.
   const cursorOverride = ref<string | null | undefined>()
-  const nextCursor = computed(() => cursorOverride.value === undefined ? pageRequest.data.value?.nextCursor ?? null : cursorOverride.value)
+  const nextCursor = computed(() => cursorOverride.value === undefined ? firstPage.value?.nextCursor ?? null : cursorOverride.value)
   const moreLoading = ref(false)
   const moreError = ref(false)
   let controller: AbortController | undefined
@@ -61,7 +73,7 @@ export function usePlacesBrowse(initialCategory?: number) {
   }
   watch(requestKey, resetPages, { flush: 'sync' })
   watch(pageRequest.data, resetPages)
-  const filteredPopups = computed(() => [...new Map([...(pageRequest.data.value?.items ?? []), ...appended.value].map(item => [item.id, item])).values()])
+  const filteredPopups = computed(() => [...new Map([...(firstPage.value?.items ?? []), ...appended.value].map(item => [item.id, item])).values()])
   async function loadMore() {
     const cursor = nextCursor.value
     if (!cursor || moreLoading.value || pageRequest.status.value !== 'success') return
@@ -112,7 +124,7 @@ export function usePlacesBrowse(initialCategory?: number) {
   onBeforeUnmount(() => { disposed = true; controller?.abort() })
   return {
     ready: Promise.all([optionsRequest, pageRequest]), options: optionsRequest.data, optionsError: optionsRequest.error,
-    appliedFilters, draftFilters, filterGroups, activeChips, appliedCount: computed(() => activeChips.value.length),
+    sort, appliedFilters, draftFilters, filterGroups, activeChips, appliedCount: computed(() => activeChips.value.length),
     filteredPopups, listStatus: pageRequest.status, listError: pageRequest.error, refreshList: pageRequest.refresh,
     refreshOptions: optionsRequest.refresh, nextCursor, moreLoading, moreError, loadMore, toggleDraft, removeFilter, selectRegion, selectCategory,
   }

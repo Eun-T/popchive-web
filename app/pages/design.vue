@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ArrowRight, Check, Heart, Search } from '@lucide/vue'
+import { webFeatures } from '~/config/features'
 
 definePageMeta({ layout: 'preview' })
 
@@ -91,7 +92,7 @@ const radii = [4, 8, 12, 16, 24]
             <h3 class="type-title-s">Lucide 아이콘</h3>
             <div class="mt-rn-16 flex flex-wrap gap-rn-24 text-secondary">
               <span class="inline-flex items-center gap-rn-8"><Search :size="20" aria-hidden="true" /><span class="type-label">검색</span></span>
-              <span class="inline-flex items-center gap-rn-8"><Heart :size="20" class="text-favorite" aria-hidden="true" /><span class="type-label text-foreground">찜</span></span>
+              <span v-if="webFeatures.favorites" class="inline-flex items-center gap-rn-8"><Heart :size="20" class="text-favorite" aria-hidden="true" /><span class="type-label text-foreground">찜</span></span>
               <span class="inline-flex items-center gap-rn-8"><Check :size="20" class="text-brand-strong" aria-hidden="true" /><span class="type-label">완료</span></span>
             </div>
           </div>

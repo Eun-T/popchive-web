@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { Search } from '@lucide/vue'
+import { webFeatures } from '~/config/features'
 
 // Set a destination only when the corresponding real page is implemented.
-const items: { label: string; to: string | null }[] = [
+const items: { label: string; to: string | null; visible?: boolean }[] = [
   { label: '홈', to: '/' },
   { label: '플레이스', to: '/places' },
   { label: '지도', to: '/map' },
-  { label: '커뮤니티', to: null }
+  { label: '커뮤니티', to: null, visible: webFeatures.communityNavigation }
 ]
+const visibleItems = items.filter(item => item.visible !== false)
 const route = useRoute()
 </script>
 
@@ -25,7 +27,7 @@ const route = useRoute()
       <nav class="app-header__nav" aria-label="주요 메뉴">
         <ul class="app-header__menu">
           <li
-            v-for="item in items"
+            v-for="item in visibleItems"
             :key="item.label"
             :class="{ 'app-header__pending-item': !item.to }"
           >

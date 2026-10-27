@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, LoaderCircle, Search } from '@lucide/vue'
+import { LoaderCircle, Search } from '@lucide/vue'
 import type { QuickSearchPopup, QuickSearchResponse } from '../../../shared/types/quickSearch'
 import { quickSearchLanguage, validQuickSearch } from '#shared/utils/quickSearch'
 
@@ -96,7 +96,7 @@ onBeforeUnmount(() => { disposed = true; cancel(); document.removeEventListener(
       <Search :size="20" aria-hidden="true" class="home-search__icon" />
       <input ref="input" v-model="text" type="search" aria-label="팝업 이름 검색" placeholder="성수, 브랜드, 팝업 이름으로 검색" class="home-search__input" autocomplete="off" role="combobox" aria-autocomplete="list" :aria-expanded="show" :aria-controls="show ? listId : undefined" :aria-activedescendant="show && activeIndex >= 0 ? optionId(activeIndex) : undefined" :aria-invalid="Array.from(query).length > 100 || undefined" @focus="reopen" @click="reopen" @keydown="keydown" @compositionstart="composing = true" @compositionend="composing = false">
     </label>
-    <button type="submit" class="home-search__button">검색 <ArrowRight :size="20" aria-hidden="true" /></button>
+    <button type="submit" class="home-search__button">검색</button>
     <div v-if="show" class="home-search__dropdown">
       <p v-if="state === 'loading'" class="home-search__state" role="status"><LoaderCircle :size="16" class="home-search__spinner" aria-hidden="true" />검색 중입니다.</p>
       <p v-else-if="state === 'error'" class="home-search__state" role="alert">검색 중 문제가 발생했어요.</p>
@@ -121,7 +121,8 @@ onBeforeUnmount(() => { disposed = true; cancel(); document.removeEventListener(
 .home-search__icon { flex-shrink: 0; color: #737373; }
 .home-search__input { width: 100%; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; color: #111827; font-family: inherit; font-size: 16px; font-weight: 400; }
 .home-search__input::placeholder { color: #737373; }
-.home-search__button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; height: 48px; padding-inline: 20px; border: 0; border-radius: 5px; background: #7c3aed; color: #ffffff; font-size: 16px; font-weight: 400; white-space: nowrap; }
+/* Preserve the original width by distributing the removed 20px icon + 8px gap equally. */
+.home-search__button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; height: 48px; padding-inline: 34px; border: 0; border-radius: 5px; background: #7c3aed; color: #ffffff; font-size: 16px; font-weight: 400; white-space: nowrap; }
 .home-search__dropdown { position: absolute; top: calc(100% + 8px); left: 0; right: 0; overflow: auto; max-height: min(380px, 60dvh); border: 1px solid var(--ds-border); border-radius: 12px; background: var(--ds-background); color: var(--ds-text); box-shadow: 0 4px 16px rgb(0 0 0 / 8%); }
 .home-search__dropdown ul { margin: 0; padding: 0; list-style: none; }
 .home-search__dropdown li + li { border-top: 1px solid var(--ds-border); }

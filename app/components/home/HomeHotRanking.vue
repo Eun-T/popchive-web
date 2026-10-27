@@ -3,9 +3,10 @@ import { formatPopupCardPeriod } from '~/utils/formatPopupCardPeriod'
 import { ref, watch } from 'vue'
 import useEmblaCarousel from 'embla-carousel-vue'
 import { ChevronLeft, ChevronRight, Heart } from '@lucide/vue'
+import { webFeatures } from '~/config/features'
 import type { HomePopupCard } from '../../../shared/types/home'
 
-defineProps<{ items: readonly HomePopupCard[]; loading?: boolean; error?: boolean }>()
+withDefaults(defineProps<{ items: readonly HomePopupCard[]; loading?: boolean; error?: boolean; showFavorite?: boolean }>(), { showFavorite: true })
 const emit = defineEmits<{ 'image-error': [] }>()
 const failedSources = ref(new Set<string>())
 function onImageError(src: string | null) {
@@ -69,7 +70,7 @@ watch(emblaApi, (api, _, onCleanup) => {
               <NuxtLink :to="`/places/${encodeURIComponent(item.publicId)}`" class="hot-ranking__detail-link" :aria-label="`${item.title} 상세 보기`" draggable="false" />
               <span class="hot-ranking__rank" :aria-label="`${index + 1}위`">{{ index + 1 }}</span>
               <!-- HomeNewPopups와 같은 비활성 하트 UI. 찜 저장/토글은 추후 구현. -->
-              <button type="button" disabled class="hot-ranking__favorite" aria-label="찜하기 (준비 중)" title="찜 기능 준비 중">
+              <button v-if="webFeatures.favorites && showFavorite" type="button" disabled class="hot-ranking__favorite" aria-label="찜하기 (준비 중)" title="찜 기능 준비 중">
                 <Heart :size="24" :stroke-width="2" fill="#6B7280" aria-hidden="true" />
               </button>
             </div>
@@ -169,15 +170,15 @@ watch(emblaApi, (api, _, onCleanup) => {
 }
 .hot-ranking__rank {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: rgb(17 24 39 / 80%);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 20px;
+  top: 12px;
+  left: 12px;
+  color: #FFFFFF;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
 }
 .hot-ranking__favorite {
   position: absolute;
@@ -220,20 +221,18 @@ watch(emblaApi, (api, _, onCleanup) => {
   /* 제목/기간 영역 62px을 제외한 포스터의 세로 중앙. */
   top: calc((100% - 62px) / 2);
   transform: translateY(-50%);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid #e5e7eb;
+  width: 40px;
+  height: 40px;
+  border: 0;
   border-radius: 50%;
-  background: #fff;
-  color: #374151;
-  cursor: pointer;
-}
-.hot-ranking__arrow:hover {
-  background: var(--ds-accent-purple);
+  background: rgba(25, 28, 35, 0.75);
   color: #fff;
+  box-shadow: none;
+  transition: opacity 200ms ease;
+  cursor: pointer;
 }
 .hot-ranking__arrow--prev { left: 4px; }
 .hot-ranking__arrow--next { right: 4px; }
@@ -259,8 +258,20 @@ watch(emblaApi, (api, _, onCleanup) => {
 }
 @media (min-width: 768px) {
   .hot-ranking__card { flex-basis: calc((100% - 24px) / 3); }
+  .hot-ranking__arrow { display: flex; }
+}
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  .hot-ranking__arrow { opacity: 0; pointer-events: none; }
+  .hot-ranking__carousel:hover .hot-ranking__arrow,
+  .hot-ranking__carousel:focus-within .hot-ranking__arrow {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 @media (min-width: 1120px) {
   .hot-ranking__card { flex-basis: calc((100% - 36px) / 4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hot-ranking__arrow { transition: none; }
 }
 </style>

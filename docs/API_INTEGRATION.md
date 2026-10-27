@@ -24,7 +24,18 @@
 
 ## 요청과 응답 처리
 
-- `app/pages/index.vue`: 세 `useFetch`를 시작한 뒤 `Promise.all`로 대기하고 기존 `posters`/`items` props로 전달한다.
+### 일본 신상 팝업 — 2026-10-27 연결
+
+- 목업 8개를 실제 데이터로 교체했다. Nuxt `/api/home/japan-new-popups?countryCode=JP&languageCode=ko` → 기존 백엔드 `GET /api/popups?countryCode=JP&languageCode=ko`를 사용한다.
+- 백엔드 `PublicPopupController.browse`의 limit/cursor 없는 목록 분기 → `PublicPopupService.list` → `PublicPopupMapper.xml`의 `list`/`popupListQuery`를 읽기 전용으로 확인했다. JP 전체 목록을 `p.created_at DESC, p.id DESC`로 정렬하며 LIMIT이 없다. 종료 팝업도 포함한다. 서버 순서를 유지해 Nuxt에서 앞 10개를 표시하며 시작일 정렬·부분 페이지 재정렬은 하지 않는다.
+- 공개 `PopupResponse`에는 등록 시각이 없다. 클라이언트에서 등록일을 추측하지 않으며 기존 SQL 정렬 계약에 의존한다. JP 이외의 행이나 페이지네이션 필드가 반환되면 오류로 처리한다.
+- 홈의 기존 세 요청과 병렬로 한 요청을 추가한다. 기존 30초 Nitro 캐시, 국가·섹션별 key, SSR payload 재사용 및 서명 이미지 갱신 정책을 그대로 사용한다. Hydration 시 추가 조회는 하지 않는다.
+- 카드 스타일·캐러셀·상세 링크와 기존 비활성 찜 버튼은 유지한다. 빈 목록·조회 오류를 별도로 표시한다. 백엔드·DB는 수정하지 않았다.
+- 코드와 diff만 정적으로 확인했다. 실제 API 호출·브라우저 확인·테스트·타입 검사·빌드는 수행하지 않았다. 운영 백엔드가 조사한 코드와 같은 계약인지 배포 후 확인이 필요하며, JP 목록이 커지면 전체 응답 비용을 고려해야 한다.
+
+### 기존 공통 처리
+
+- `app/pages/index.vue`: 일본 신상을 포함한 네 `useFetch`를 시작한 뒤 `Promise.all`로 대기하고 기존 `posters`/`items` props로 전달한다.
 - `app/composables/useHomePopups.ts`: 국가·언어를 포함한 고정 key, `server:true`, `dedupe:'defer'`를 사용한다. SSR payload를 그대로 재사용하고 마운트 시 재조회하지 않는다.
 - `server/api/home/[section].get.ts`: 허용된 세 섹션과 국가·언어만 받는다. 사용자 URL·임의 경로·임의 query를 백엔드에 전달하지 않는다.
 - `server/utils/homePopups.ts`: 백엔드의 `{popups}` 응답을 검증하고 `shared/types/home.ts`의 카드 모델로 변환한다.

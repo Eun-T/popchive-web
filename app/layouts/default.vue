@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppHeader from '~/components/layout/AppHeader.vue'
 import TodayPopupSidebar from '~/components/layout/TodayPopupSidebar.vue'
+import AppFooter from '~/components/layout/AppFooter.vue'
 </script>
 
 <template>
@@ -12,6 +13,7 @@ import TodayPopupSidebar from '~/components/layout/TodayPopupSidebar.vue'
       </div>
       <TodayPopupSidebar />
     </main>
+    <AppFooter />
   </div>
 </template>
 

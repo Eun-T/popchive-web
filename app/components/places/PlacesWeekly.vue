@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Heart } from '@lucide/vue'
+import { webFeatures } from '~/config/features'
 import useEmblaCarousel from 'embla-carousel-vue'
 import type { WeeklyPopupsResponse } from '../../../shared/types/weekly'
 import { endingSoonToday } from '#shared/utils/endingSoon'
@@ -110,7 +111,7 @@ function shortDate(value: string) { return `${Number(value.slice(5, 7))}.${Numbe
                 </div>
                 <div class="weekly-card__title-row">
                   <h3 :title="popup.name">{{ popup.name }}</h3>
-                  <button type="button" class="weekly-card__favorite" disabled aria-label="찜하기 (준비 중)" title="찜 기능 준비 중"><Heart :size="24" :stroke-width="2" fill="#6B7280" aria-hidden="true" /></button>
+                  <button v-if="webFeatures.favorites" type="button" class="weekly-card__favorite" disabled aria-label="찜하기 (준비 중)" title="찜 기능 준비 중"><Heart :size="24" :stroke-width="2" fill="#6B7280" aria-hidden="true" /></button>
                 </div>
                 <p class="weekly-card__meta"><span>{{ popup.regionName ?? '지역 미정' }}</span> · <span>{{ shortDate(popup.startDate) }} - {{ shortDate(popup.endDate) }}</span></p>
               </div>

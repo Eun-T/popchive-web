@@ -1,4 +1,5 @@
 import type { PlaceCountry, PlaceListQuery, PlaceOption, PlaceOptions, PlacePage, PlacePopup } from '../../shared/types/places'
+import { PLACE_PAGE_SIZE } from '../../shared/types/places'
 import { PLACE_REGION_PAGES } from '../../shared/utils/placeRegions'
 
 function invalid(): never { throw createError({ statusCode: 502, statusMessage: 'Invalid public places response' }) }
@@ -53,8 +54,8 @@ export const getPlacesOptions = defineCachedFunction(async (apiBase: string): Pr
 export const getPlacesPage = defineCachedFunction(async (
   apiBase: string, query: PlaceListQuery, asOf: string,
 ): Promise<PlacePage> => {
-  const body = record(await read(apiBase, '/api/popups', { ...query, limit: 10, languageCode: 'ko' }))
-  if (!Array.isArray(body.popups) || body.popups.length > 10
+  const body = record(await read(apiBase, '/api/popups', { ...query, limit: PLACE_PAGE_SIZE, sort: query.sort ?? 'LATEST', languageCode: 'ko' }))
+  if (!Array.isArray(body.popups) || body.popups.length > PLACE_PAGE_SIZE
     || (body.nextCursor !== null && (typeof body.nextCursor !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(body.nextCursor)))) return invalid()
   if (body.nextCursor && (body.nextCursor === query.cursor || !body.popups.length)) return invalid()
   const requestedRegions = query.regionIds?.split(',').map(Number)
@@ -80,4 +81,4 @@ export const getPlacesPage = defineCachedFunction(async (
   })
   if (new Set(items.map(item => item.id)).size !== items.length) return invalid()
   return { items, nextCursor: body.nextCursor as string | null, asOf, fetchedAt: Date.now() }
-}, { name: 'public-places-page-v1', maxAge: 30, swr: false })
+}, { name: 'public-places-page-v2', maxAge: 30, swr: false })

@@ -7,19 +7,24 @@ import HomeHotRanking from '~/components/home/HomeHotRanking.vue'
 import HomeJapanNewPopups from '~/components/home/HomeJapanNewPopups.vue'
 import HomeSeoulMap from '~/components/home/HomeSeoulMap.vue'
 import { PAGE_SEO } from '#shared/utils/seo'
+import { webFeatures } from '~/config/features'
 
 usePopchiveSeo(PAGE_SEO['/'])
+
+const showHomeFavorites = webFeatures.favorites
 
 const { result: bannersRequest, onImageError: onBannerImageError } = useHomePopups('main-banners')
 const { result: newRequest, onImageError: onNewImageError } = useHomePopups('new-popups')
 const { result: hotRequest, onImageError: onHotImageError } = useHomePopups('now-hot')
+const { result: japanRequest, onImageError: onJapanImageError } = useHomePopups('japan-new-popups', 'JP')
 
-// Start all three during setup, then await together. SSR results, including empty
+// Start all four during setup, then await together. SSR results, including empty
 // lists, travel in the Nuxt payload and are reused rather than fetched on mount.
-const [banners, newPopups, hotPopups] = await Promise.all([bannersRequest, newRequest, hotRequest])
+const [banners, newPopups, hotPopups, japanPopups] = await Promise.all([bannersRequest, newRequest, hotRequest, japanRequest])
 const posters = computed(() => banners.data.value?.items ?? [])
 const newPopupItems = computed(() => newPopups.data.value?.items ?? [])
 const hotRankingItems = computed(() => hotPopups.data.value?.items ?? [])
+const japanPopupItems = computed(() => japanPopups.data.value?.items ?? [])
 </script>
 
 <template>
@@ -34,19 +39,27 @@ const hotRankingItems = computed(() => hotPopups.data.value?.items ?? [])
       <!-- <HomeCategoryShortcuts /> -->
     </div>
     <HomeNewPopups
+      :show-favorite="showHomeFavorites"
       :items="newPopupItems"
       :loading="newPopups.status.value === 'pending' && !newPopups.data.value"
       :error="!!newPopups.error.value"
       @image-error="onNewImageError"
     />
     <HomeHotRanking
+      :show-favorite="showHomeFavorites"
       :items="hotRankingItems"
       :loading="hotPopups.status.value === 'pending' && !hotPopups.data.value"
       :error="!!hotPopups.error.value"
       @image-error="onHotImageError"
     />
     <HomeSeoulMap />
-    <HomeJapanNewPopups />
+    <HomeJapanNewPopups
+      :show-favorite="showHomeFavorites"
+      :items="japanPopupItems"
+      :loading="japanPopups.status.value === 'pending' && !japanPopups.data.value"
+      :error="!!japanPopups.error.value"
+      @image-error="onJapanImageError"
+    />
   </div>
 </template>
 

@@ -147,7 +147,8 @@
     outline: 2px solid var(--ds-focus);
     outline-offset: 3px;
   }
-  ::selection { background: var(--ds-brand-soft); color: var(--ds-text); }
+  ::selection { background: #EDE4FF; color: #241638; }
+  ::-moz-selection { background: #EDE4FF; color: #241638; }
 }
 
 @layer components {

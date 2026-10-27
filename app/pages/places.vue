@@ -1,20 +1,29 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
-import { ChevronDown, Heart, SlidersHorizontal, X } from "@lucide/vue";
+import { Heart, MapPin, SlidersHorizontal, X } from "@lucide/vue";
 import PlacesEndingSoon from "~/components/places/PlacesEndingSoon.vue";
 import PlacesVenues from "~/components/places/PlacesVenues.vue";
 import PlacesRegions from "~/components/places/PlacesRegions.vue";
 import PlacesWeekly from "~/components/places/PlacesWeekly.vue";
 import PlacesInterests from "~/components/places/PlacesInterests.vue";
+import PlacesSortMenu from "~/components/places/PlacesSortMenu.vue";
 import { PLACE_INTERESTS } from '#shared/utils/placeInterests';
 import { usePlacesBrowse, emptyPlaceFilters, copyPlaceFilters } from '~/composables/usePlacesBrowse';
 import type { PlaceFilterKey, PlaceFilters } from '~/composables/usePlacesBrowse';
 import type { PlacePopup, PlaceCountry } from '../../shared/types/places';
 import { PAGE_SEO } from '#shared/utils/seo';
+import { formatPopupCardPeriod } from '~/utils/formatPopupCardPeriod';
+import { webFeatures } from '~/config/features';
+import { popupCalendarDate, popupDayStatus } from '~/utils/popupDates';
 
 usePopchiveSeo(PAGE_SEO['/places']);
 
 definePageMeta({ layout: "default" });
+
+// Temporarily disable these shortcuts, including component setup and section spacing.
+// /api/places/options remains necessary for the All tab's region/category filters.
+const showRegionShortcuts = false;
+const showInterestShortcuts = false;
 
 const tabs = [
   { id: "explore", label: "탐색" },
@@ -71,7 +80,7 @@ const copyFilters = copyPlaceFilters;
 const browse = usePlacesBrowse(categoryFromRoute());
 await browse.ready;
 const {
-  options, optionsError, refreshOptions, appliedFilters, draftFilters, filterGroups, activeChips, appliedCount,
+  sort, options, optionsError, refreshOptions, appliedFilters, draftFilters, filterGroups, activeChips, appliedCount,
   filteredPopups, listStatus, listError, refreshList, nextCursor, moreLoading, moreError, loadMore, removeFilter, selectRegion, selectCategory,
 } = browse;
 function toggleDraft(group: FilterGroup, value: string) { browse.toggleDraft(group.key, value); }
@@ -288,8 +297,32 @@ onBeforeUnmount(() => {
 });
 
 const failedImages = ref(new Set<string>());
+// Serialize the SSR clock in the payload; only update it after hydration.
+const cardNow = useState('places:card-now', () => Date.now());
+let cardClock: ReturnType<typeof setInterval> | undefined;
+onMounted(() => {
+  cardNow.value = Date.now();
+  cardClock = setInterval(() => { cardNow.value = Date.now(); }, 60_000);
+});
+onBeforeUnmount(() => { if (cardClock) clearInterval(cardClock); });
+const cardToday = computed(() => ({
+  KR: popupCalendarDate(cardNow.value, 'KR'), JP: popupCalendarDate(cardNow.value, 'JP'),
+}));
+function dayStatus(popup: PlacePopup) {
+  return popupDayStatus(popup, cardToday.value[popup.countryCode]);
+}
+const popupCards = computed(() => {
+  const regions = new Map((options.value?.regions ?? []).map(region => [`${region.countryCode}:${region.id}`, region.name]));
+  const tags = new Map((options.value?.tags ?? []).map(tag => [tag.id, tag]));
+  return filteredPopups.value.map(popup => ({
+    ...popup,
+    dayStatus: dayStatus(popup),
+    regionName: regions.get(`${popup.countryCode}:${popup.regionId}`),
+    tags: popup.tagIds.flatMap(id => { const tag = tags.get(id); return tag ? [tag] : []; }).slice(0, 2),
+  }));
+});
 function formatPeriod(popup: PlacePopup) {
-  return `${popup.startDate?.replaceAll("-", ".") ?? "시작일 미정"} ~ ${popup.endDate?.replaceAll("-", ".") ?? "종료일 미정"}`;
+  return formatPopupCardPeriod(`${popup.startDate ?? "시작일 미정"} ~ ${popup.endDate ?? "종료일 미정"}`);
 }
 </script>
 
@@ -355,9 +388,7 @@ function formatPeriod(popup: PlacePopup) {
             <X :size="12" aria-hidden="true" />
           </button>
         </div>
-        <span class="places-sort">
-          최신 등록순 <ChevronDown :size="14" aria-hidden="true" />
-        </span>
+        <PlacesSortMenu v-model="sort" />
       </div>
       <p v-if="optionsError" class="places-empty" role="alert">필터 정보를 불러오지 못했습니다. <button type="button" class="places-list-action" @click="refreshOptions()">다시 시도</button></p>
       <p v-if="listStatus === 'pending'" class="places-empty" role="status">팝업을 불러오는 중입니다.</p>
@@ -366,7 +397,7 @@ function formatPeriod(popup: PlacePopup) {
         선택한 조건에 맞는 팝업이 없습니다.
       </p>
       <ul v-else class="places-grid">
-        <li v-for="popup in filteredPopups" :key="popup.id" class="places-card">
+        <li v-for="popup in popupCards" :key="popup.id" class="places-card">
           <div class="places-card__poster">
             <img
               v-if="popup.image && !failedImages.has(popup.image)"
@@ -386,16 +417,24 @@ function formatPeriod(popup: PlacePopup) {
               type="button"
               disabled
               class="places-card__favorite"
+              v-if="webFeatures.favorites"
               aria-label="찜하기 (준비 중)"
               title="찜 기능 준비 중"
             >
               <Heart :size="24" :stroke-width="2" fill="#6B7280" aria-hidden="true" />
             </button>
           </div>
+          <p v-if="popup.dayStatus" class="places-card__dday" :class="`places-card__dday--${popup.dayStatus.state}`">{{ popup.dayStatus.label }}</p>
           <h3 class="places-card__title" :title="popup.title">
             <NuxtLink :to="`/places/${encodeURIComponent(popup.id)}`" draggable="false">{{ popup.title }}</NuxtLink>
           </h3>
           <p class="places-card__period">{{ formatPeriod(popup) }}</p>
+          <div v-if="popup.regionName || popup.tags.length" class="places-card__metadata">
+            <p v-if="popup.regionName" class="places-card__location"><MapPin :size="14" aria-hidden="true" /><span :title="popup.regionName">{{ popup.regionName }}</span></p>
+            <ul v-if="popup.tags.length" class="places-card__tags" aria-label="팝업 태그">
+              <li v-for="tag in popup.tags" :key="tag.id" :title="tag.name">{{ tag.name }}</li>
+            </ul>
+          </div>
         </li>
       </ul>
       <div v-if="nextCursor && !listError && listStatus === 'success'" class="places-pagination">
@@ -414,9 +453,9 @@ function formatPeriod(popup: PlacePopup) {
     >
       <PlacesEndingSoon :active="selectedTab === 'explore'" />
       <PlacesVenues :active="selectedTab === 'explore'" />
-      <PlacesRegions :active="selectedTab === 'explore'" :regions="options?.regions ?? []" @select="onSelectRegion" />
+      <PlacesRegions v-if="showRegionShortcuts" :active="selectedTab === 'explore'" :regions="options?.regions ?? []" @select="onSelectRegion" />
       <PlacesWeekly :active="selectedTab === 'explore'" />
-      <PlacesInterests :tags="options?.tags ?? []" @select="onSelectCategory" />
+      <PlacesInterests v-if="showInterestShortcuts" :tags="options?.tags ?? []" @select="onSelectCategory" />
     </section>
     <dialog
       id="places-filter-dialog"
@@ -544,7 +583,6 @@ function formatPeriod(popup: PlacePopup) {
   width: 100%;
   max-width: 826px;
   min-width: 0;
-  padding-bottom: 48px;
   color: #111827;
 }
 .places-tabs {
@@ -619,22 +657,36 @@ function formatPeriod(popup: PlacePopup) {
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 25%));
 }
 .places-card__title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
   min-width: 0;
-  margin-top: 12px;
+  margin-top: 2px;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   font-size: 16px;
   font-weight: 600;
   line-height: 24px;
 }
 .places-card__period {
-  margin-top: 6px;
+  margin-top: 2px;
   color: #6b7280;
   font-size: 13px;
   font-weight: 400;
   line-height: 20px;
 }
+.places-card__dday { margin-top: 12px; font-size: 13px; font-weight: 600; line-height: 20px; }
+.places-card__dday--upcoming { color: #2563EB; }
+.places-card__dday--ongoing { color: #16805D; }
+.places-card__dday--last-day { color: #C05621; }
+.places-card__dday--ended { color: #9CA3AF; }
+.places-card__metadata { display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: 2px; }
+.places-card__location { display: flex; align-items: center; gap: 4px; min-width: 18px; color: #6b7280; font-size: 13px; line-height: 20px; }
+.places-card__location svg { flex-shrink: 0; }
+.places-card__location span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.places-card__tags { display: flex; align-items: center; gap: 4px; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.places-card__tags li { min-width: 0; padding: 2px 6px; border-radius: 4px; background: #f3f4f6; color: #4b5563; font-size: 12px; line-height: 18px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .places-card__image-state {
   position: absolute;
   inset: 0;
@@ -723,16 +775,6 @@ function formatPeriod(popup: PlacePopup) {
 }
 .places-applied-chip:hover {
   background: var(--ds-border);
-}
-.places-sort {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: var(--ds-space-4);
-  min-height: 32px;
-  color: var(--ds-secondary);
-  font-size: var(--ds-label-size);
-  line-height: var(--ds-label-leading);
 }
 .places-empty {
   padding-block: var(--ds-space-48);
