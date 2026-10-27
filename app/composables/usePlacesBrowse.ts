@@ -1,5 +1,5 @@
 import type { PlaceListQuery, PlaceOptions, PlacePage, PlacePopup, PlaceStatus, PlaceSort } from '../../shared/types/places'
-import { PLACE_PAGE_SIZE } from '../../shared/types/places'
+import { PLACE_PAGE_SIZE } from '#shared/types/places'
 
 export type PlaceFilterKey = 'countryCode' | 'region' | 'category' | 'status'
 export type PlaceFilters = Record<PlaceFilterKey, string[]>

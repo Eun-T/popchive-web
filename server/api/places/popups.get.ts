@@ -1,5 +1,5 @@
 import type { PlaceListQuery } from '../../../shared/types/places'
-import { PLACE_PAGE_SIZE } from '../../../shared/types/places'
+import { PLACE_PAGE_SIZE } from '#shared/types/places'
 import { endingSoonToday } from '../../../shared/utils/endingSoon'
 import { getPlacesPage } from '../../utils/placesBrowse'
 

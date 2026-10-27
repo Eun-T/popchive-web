@@ -1,5 +1,5 @@
 import type { PlaceCountry, PlaceListQuery, PlaceOption, PlaceOptions, PlacePage, PlacePopup } from '../../shared/types/places'
-import { PLACE_PAGE_SIZE } from '../../shared/types/places'
+import { PLACE_PAGE_SIZE } from '#shared/types/places'
 import { PLACE_REGION_PAGES } from '../../shared/utils/placeRegions'
 
 function invalid(): never { throw createError({ statusCode: 502, statusMessage: 'Invalid public places response' }) }
