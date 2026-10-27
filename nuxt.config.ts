@@ -3,10 +3,19 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  app: {
+    head: {
+      meta: [
+        { name: 'naver-site-verification', content: 'fc99d70b029e697a0a5f2ab63f9fb02a34bef189' }
+      ]
+    }
+  },
   runtimeConfig: {
     // Server only. Override with NUXT_API_BASE; never expose through public config.
     apiBase: 'https://api.popchive.com',
     public: {
+      ga4MeasurementId: '', // NUXT_PUBLIC_GA4_MEASUREMENT_ID
+      ga4Enabled: false, // NUXT_PUBLIC_GA4_ENABLED; enable only after the documented prerequisites
       googleMapsApiKey: '', // NUXT_PUBLIC_GOOGLE_MAPS_API_KEY (browser key)
       googleStaticMapsApiKey: '', // NUXT_PUBLIC_GOOGLE_STATIC_MAPS_API_KEY; separate browser key, no fallback
       googleStaticMapId: '', // NUXT_PUBLIC_GOOGLE_STATIC_MAP_ID; optional home Static Maps styling
