@@ -687,14 +687,12 @@ function formatPeriod(popup: PlacePopup) {
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 25%));
 }
 .places-card__title {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  display: block;
   overflow: hidden;
   min-width: 0;
   margin-top: 2px;
   text-overflow: ellipsis;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   font-size: 16px;
   font-weight: 600;
   line-height: 24px;
