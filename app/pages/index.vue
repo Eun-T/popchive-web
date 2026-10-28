@@ -30,7 +30,7 @@ const japanPopupItems = computed(() => japanPopups.data.value?.items ?? [])
 <template>
   <div class="home-page">
     <div class="home-main-section">
-      <HomeQuickSearch />
+      <HomeQuickSearch class="home-desktop-search" />
       <p v-if="banners.error.value" class="home-banner-state" role="alert">메인 팝업을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
       <HomeFeaturedGrid v-else-if="posters.length" :posters="posters" @image-error="onBannerImageError" />
       <p v-else class="home-banner-state" role="status">현재 등록된 메인 팝업이 없습니다.</p>
@@ -64,6 +64,9 @@ const japanPopupItems = computed(() => japanPopups.data.value?.items ?? [])
 </template>
 
 <style scoped>
+@media (width < 768px) {
+  .home-main-section > .home-desktop-search { display: none; }
+}
 .home-main-section {
   display: flex;
   flex-direction: column;

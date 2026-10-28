@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
+import useEmblaCarousel from 'embla-carousel-vue'
 import type { HomePopupCard } from '../../../shared/types/home'
 import { featuredPopupDateLabel, featuredPopupToday } from '~/utils/featuredPopupDate'
 
@@ -9,6 +10,27 @@ const today = useState('featured-popup-today', () => featuredPopupToday())
 const cards = computed(() => props.posters.slice(0, 3).map(poster => ({
   ...poster, dateLabel: featuredPopupDateLabel(poster.period, today.value),
 })))
+// Three cycles keep both neighbours available even with only two banners.
+// Desktop hides the copies and retains the original grid.
+const slides = computed(() => Array.from(
+  { length: cards.value.length > 1 ? 3 : 1 },
+  (_, copy) => cards.value.map(poster => ({ poster, copy, key: `${poster.id}:${copy}` }))
+).flat())
+const initialIndex = computed(() => cards.value.length > 1 ? cards.value.length : 0)
+const carouselOptions = computed(() => ({
+  align: 'center' as const,
+  containScroll: false as const,
+  loop: cards.value.length > 1,
+  startIndex: initialIndex.value,
+  slidesToScroll: 1,
+  dragFree: false,
+  skipSnaps: false,
+  breakpoints: {
+    '(min-width: 768px)': { active: false },
+    '(prefers-reduced-motion: reduce)': { duration: 0 },
+  },
+}))
+const [emblaRef] = useEmblaCarousel(carouselOptions)
 let dateTimer: ReturnType<typeof setInterval> | undefined
 const failedSources = ref(new Set<string>())
 const posterImages = useTemplateRef<HTMLImageElement[]>('posterImages')
@@ -32,8 +54,9 @@ onBeforeUnmount(() => clearInterval(dateTimer))
 </script>
 
 <template>
-  <section class="home-featured-grid" aria-label="주목할 팝업">
-    <article v-for="poster in cards" :key="poster.id" class="home-featured-grid__card">
+  <section ref="emblaRef" class="home-featured-viewport" aria-label="주목할 팝업" :style="{ '--initial-index': initialIndex }">
+    <div class="home-featured-grid">
+    <article v-for="{ poster, copy, key } in slides" :key="key" class="home-featured-grid__card" :class="{ 'is-copy': copy > 0 }">
       <img
         v-if="poster.src && !failedSources.has(poster.src)"
         ref="posterImages"
@@ -42,6 +65,7 @@ onBeforeUnmount(() => clearInterval(dateTimer))
         :width="poster.width"
         :height="poster.height"
         decoding="async"
+        draggable="false"
         class="home-featured-grid__image"
         @error="onImageError(poster.src)"
       >
@@ -53,10 +77,12 @@ onBeforeUnmount(() => clearInterval(dateTimer))
       </div>
       <NuxtLink :to="`/places/${encodeURIComponent(poster.publicId)}`" class="home-featured-grid__link" :aria-label="`${poster.title} 상세 보기`" draggable="false" />
     </article>
+    </div>
   </section>
 </template>
 
 <style scoped>
+.home-featured-viewport { min-width: 0; width: 100%; flex-shrink: 0; }
 .home-featured-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -76,6 +102,7 @@ onBeforeUnmount(() => clearInterval(dateTimer))
   background: #374151;
   color: #ffffff;
 }
+.home-featured-grid__card.is-copy { display: none; }
 .home-featured-grid__image {
   position: absolute;
   inset: 0;
@@ -127,9 +154,32 @@ onBeforeUnmount(() => clearInterval(dateTimer))
   line-height: 1.35;
 }
 @media (width < 768px) {
-  .home-featured-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-featured-viewport {
+    /* Reveal neighbours in the existing 20px page gutters without resizing cards. */
+    width: calc(100% + 40px);
+    margin-inline: -20px;
+    overflow: hidden;
+    touch-action: pan-y pinch-zoom;
+  }
+  .home-featured-grid {
+    --card-width: calc((100% - 56px) / 2);
+    display: flex;
+    gap: 12px;
+    max-width: none;
+    touch-action: pan-y pinch-zoom;
+    user-select: none;
+    /* SSR alignment; Embla's inline transform takes over after mounting. */
+    transform: translateX(calc(50% - var(--card-width) / 2 - (var(--card-width) + 12px) * var(--initial-index)));
+  }
+  .home-featured-grid__card,
+  .home-featured-grid__card.is-copy {
+    display: block;
+    flex: 0 0 var(--card-width);
+  }
+  .home-featured-grid__card:last-child { margin-inline-end: 12px; }
+  .home-featured-grid__image { -webkit-user-drag: none; }
 }
 @media (width < 480px) {
-  .home-featured-grid { grid-template-columns: minmax(0, 1fr); }
+  .home-featured-grid { --card-width: calc(100% - 40px); }
 }
 </style>

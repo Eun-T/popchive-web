@@ -5,6 +5,7 @@ import { quickSearchLanguage, validQuickSearch } from '#shared/utils/quickSearch
 
 const root = ref<HTMLFormElement | null>(null)
 const input = ref<HTMLInputElement | null>(null)
+defineExpose({ focus: () => input.value?.focus({ preventScroll: true }) })
 const text = ref('')
 const query = computed(() => text.value.trim())
 const composing = ref(false)
