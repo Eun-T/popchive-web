@@ -13,6 +13,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Server only. Override with NUXT_API_BASE; never expose through public config.
     apiBase: 'https://api.popchive.com',
+    naverClientId: '', // NUXT_NAVER_CLIENT_ID — server only
+    naverClientSecret: '', // NUXT_NAVER_CLIENT_SECRET — server only
     public: {
       ga4MeasurementId: '', // NUXT_PUBLIC_GA4_MEASUREMENT_ID
       ga4Enabled: false, // NUXT_PUBLIC_GA4_ENABLED; enable only after the documented prerequisites

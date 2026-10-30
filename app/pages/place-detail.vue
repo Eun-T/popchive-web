@@ -11,6 +11,7 @@ import type { PopupDetail } from "../../shared/types/popup";
 import { popupSeoDescription } from "#shared/utils/seo";
 import PopupRecommendations from "~/components/places/PopupRecommendations.vue";
 import PopupDirectionsMenu from "~/components/places/PopupDirectionsMenu.vue";
+import PopupBlogReviews from "~/components/places/PopupBlogReviews.vue";
 import {
   formatPopupDetailPeriod,
   popupCalendarDate,
@@ -425,6 +426,7 @@ usePopchiveSeo({
         <h2>방문 리뷰</h2>
         <p class="detail-state">아직 등록된 방문 리뷰가 없어요.</p>
       </section>
+      <PopupBlogReviews :key="`${id}:blog-reviews`" :public-id="id" />
       <PopupRecommendations
         :key="`${id}:nearby`"
         :public-id="id"
@@ -470,6 +472,20 @@ usePopchiveSeo({
   max-width: 826px;
   min-width: 0;
   color: #171717;
+}
+/* Match PopupRecommendations' divider; only exists when reviews render.
+   The observer wrapper remains mounted for lazy loading, even without results. */
+.popup-detail :deep(.blog-reviews) {
+  display: flow-root;
+  margin-top: 0;
+}
+.popup-detail :deep(.blog-reviews::before) {
+  content: "";
+  display: block;
+  width: 100%;
+  margin: 32px 0;
+  border: 0;
+  border-top: 1px solid #e5e7eb;
 }
 .detail-top {
   display: grid;

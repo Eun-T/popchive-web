@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Menu, Search, X } from '@lucide/vue'
-import HomeQuickSearch from '~/components/home/HomeQuickSearch.vue'
 import { webFeatures } from '~/config/features'
 
 // Set a destination only when the corresponding real page is implemented.
@@ -16,32 +15,17 @@ function isActive(to: string) {
   return route.path === to || (to === '/places' && route.path.startsWith('/places/'))
 }
 const mobileItems = items.filter(item => item.to && item.to !== '/community')
-const searchOpen = ref(false)
 const drawerOpen = ref(false)
 const drawerVisible = ref(false)
 let drawerFrame: number | undefined
 let drawerCloseTimer: ReturnType<typeof setTimeout> | undefined
-const searchId = useId()
 const drawerId = useId()
-const quickSearch = ref<InstanceType<typeof HomeQuickSearch> | null>(null)
-const searchButton = ref<HTMLButtonElement | null>(null)
 const drawer = ref<HTMLDialogElement | null>(null)
 let mobileQuery: MediaQueryList | undefined
 let previousOverflow: string | undefined
 
-function toggleSearch() {
-  searchOpen.value = !searchOpen.value
-}
-function focusSearch() {
-  if (searchOpen.value && mobileQuery?.matches) quickSearch.value?.focus()
-}
-function closeSearch() {
-  searchOpen.value = false
-  searchButton.value?.focus()
-}
 function openDrawer() {
   if (!mobileQuery?.matches || !drawer.value || drawer.value.open) return
-  searchOpen.value = false
   previousOverflow = document.body.style.overflow
   document.body.style.overflow = 'hidden'
   drawer.value.showModal()
@@ -81,11 +65,9 @@ function onBackdropClick(event: MouseEvent) {
 }
 function onViewportChange() {
   if (mobileQuery?.matches) return
-  searchOpen.value = false
   finishDrawerClose()
 }
 watch(() => route.fullPath, () => {
-  searchOpen.value = false
   closeDrawer()
 })
 onMounted(() => {
@@ -136,29 +118,22 @@ onBeforeUnmount(() => {
         </ul>
       </nav>
 
-      <div class="app-header__actions" role="group" aria-label="검색 및 계정 (준비 중)">
-        <button type="button" disabled aria-label="검색" title="검색 기능 준비 중" class="app-header__search app-header__placeholder text-secondary">
+      <div class="app-header__actions" role="group" aria-label="검색 및 계정">
+        <NuxtLink to="/search" aria-label="검색" class="app-header__search ds-control text-secondary">
           <Search :size="20" aria-hidden="true" />
-        </button>
+        </NuxtLink>
         <button type="button" disabled title="로그인 기능 준비 중" class="app-header__login app-header__placeholder type-label text-secondary">로그인</button>
         <button type="button" disabled title="회원가입 기능 준비 중" class="app-header__signup app-header__placeholder type-label border border-border bg-background text-foreground">회원가입</button>
       </div>
       <div class="app-header__mobile-actions">
-        <button ref="searchButton" type="button" class="app-header__mobile-button ds-control" aria-label="검색창 열기/닫기" :aria-expanded="searchOpen" :aria-controls="searchId" @click="toggleSearch">
+        <NuxtLink to="/search" class="app-header__mobile-button ds-control" aria-label="검색">
           <Search :size="20" aria-hidden="true" />
-        </button>
+        </NuxtLink>
         <button type="button" class="app-header__mobile-button ds-control" aria-label="메뉴 열기" aria-haspopup="dialog" :aria-expanded="drawerOpen" :aria-controls="drawerId" @click="openDrawer">
           <Menu :size="24" aria-hidden="true" />
         </button>
       </div>
     </div>
-    <Transition name="header-search" @after-enter="focusSearch">
-      <div v-if="searchOpen" :id="searchId" class="app-header__mobile-search" :inert="!searchOpen" @keydown.esc="closeSearch">
-        <div class="app-header__search-clip">
-          <div class="app-header__search-content"><HomeQuickSearch ref="quickSearch" /></div>
-        </div>
-      </div>
-    </Transition>
     <dialog :id="drawerId" ref="drawer" class="app-header__drawer" :class="{ 'is-visible': drawerVisible }" aria-label="주요 메뉴" @cancel.prevent="closeDrawer" @close="finishDrawerClose" @transitionend="onDrawerTransitionEnd" @click="onBackdropClick">
       <div class="app-header__drawer-heading">
         <span class="type-body font-semibold">메뉴</span>

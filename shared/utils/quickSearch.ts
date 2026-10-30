@@ -1,5 +1,9 @@
 import type { QuickSearchPopup } from '../types/quickSearch'
 
+export function normalizeSearchQuery(value: string): string {
+  return value.replace(/\s+/gu, ' ').trim()
+}
+
 export function quickSearchLanguage(query: string): 'ko' | 'ja' {
   return /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(query)
     && !/\p{Script=Hangul}/u.test(query) ? 'ja' : 'ko'
