@@ -6,10 +6,23 @@ import HomeNewPopups from '~/components/home/HomeNewPopups.vue'
 import HomeHotRanking from '~/components/home/HomeHotRanking.vue'
 import HomeJapanNewPopups from '~/components/home/HomeJapanNewPopups.vue'
 import HomeSeoulMap from '~/components/home/HomeSeoulMap.vue'
-import { PAGE_SEO } from '#shared/utils/seo'
+import { canonicalUrl, PAGE_SEO, SITE_NAME, SITE_ALTERNATE_NAME } from '#shared/utils/seo'
 import { webFeatures } from '~/config/features'
 
-usePopchiveSeo(PAGE_SEO['/'])
+usePopchiveSeo({ ...PAGE_SEO['/'], image: '/logo.png' })
+useHead({
+  script: [{
+    key: 'website-schema',
+    type: 'application/ld+json',
+    textContent: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: SITE_NAME,
+      alternateName: SITE_ALTERNATE_NAME,
+      url: canonicalUrl('/'),
+    }),
+  }],
+})
 
 const showHomeFavorites = webFeatures.favorites
 
@@ -29,6 +42,7 @@ const japanPopupItems = computed(() => japanPopups.data.value?.items ?? [])
 
 <template>
   <div class="home-page">
+    <h1 class="sr-only">더플레이브 (THE PLAVE) — 한국·일본 팝업스토어 정보</h1>
     <div class="home-main-section">
       <HomeQuickSearch class="home-desktop-search" />
       <p v-if="banners.error.value" class="home-banner-state" role="alert">메인 팝업을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>

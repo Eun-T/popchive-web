@@ -1,5 +1,22 @@
 # POPCHIVE 공개 웹 SEO 및 동적 Sitemap
 
+## 현재 브랜드 SEO — 2026-11-01 보완
+
+- 공식 사이트명은 `더플레이브`, 영문 대체명은 `THE PLAVE`, 대표 URL은 `https://theplave.co.kr/`이다. 아래 2026-10-26 기록의 이전 브랜드·도메인 설명보다 현재 코드가 우선한다.
+- 홈페이지 title: `더플레이브 (THE PLAVE) | 한국·일본 팝업스토어 정보`.
+- 홈페이지 description: `한국과 일본의 팝업스토어를 더플레이브에서 만나보세요. 지역별 팝업 정보와 운영 기간, 위치, 방문 정보를 확인할 수 있습니다.`
+- 홈페이지에만 WebSite JSON-LD 1개를 SSR 출력한다. `name`, `alternateName`, `url`을 공통 SEO 값과 연결한다. 전역 스키마나 임의의 SearchAction은 추가하지 않는다.
+- Organization은 운영 조직의 정체성과 공식 SNS가 확인되지 않아 추가하지 않는다. WebSite는 사이트 명칭, Organization은 운영 주체를 설명하는 서로 다른 데이터다. 확인되지 않은 사업자 정보·sameAs를 추정하지 않는다.
+- 홈페이지 OG/Twitter 이미지는 실제 운영 중인 `/logo.png`를 사용한다. 별도 공유 이미지는 만들지 않는다. 상세페이지는 기존 대표 이미지 정책을 유지한다.
+- 홈페이지에는 화면 배치를 바꾸지 않는 접근성용 H1을 추가했다. 헤더 로고 alt는 이미 `더플레이브`다. `/design`의 과거 브랜드와 법적 문서 원문은 유지한다. 현재 푸터는 빈 영역이며 앱 설치·공식 SNS 링크는 구현되어 있지 않다.
+- 운영 SSR 사전 확인: 홈·대표 상세 200/index, 사이트맵 97개 URL, 기존 도메인 308 → 신규 도메인. `www.theplave.co.kr`은 이번 조회에서 연결을 확인하지 못했다. 상세 공유 이미지는 기존 300초 서명 URL이므로 장기 공유 캐시에는 한계가 있다.
+- 법적 페이지 3개와 `.html` 호환 주소의 noindex, API·GA4·지도·환경변수·배포 설정은 유지한다.
+- 배포 후 Search Console에서 홈페이지 URL 검사 → 실제 URL 테스트 → 렌더링 HTML의 WebSite·canonical·robots 확인, 색인 요청, 주소 변경 진행 상태와 Google 선택 canonical을 확인한다. 기존 사이트맵은 다시 만들지 않는다.
+- WebSite 사이트 이름은 Rich Results Test의 지원 대상이 아니다. JSON 문법 및 [Schema Markup Validator](https://validator.schema.org/)와 URL 검사로 확인한다. 검색 이름·색인·순위를 보장하지 않는다.
+- 공식 근거: [Google 사이트 이름](https://developers.google.com/search/docs/appearance/site-names), [Organization](https://developers.google.com/search/docs/appearance/structured-data/organization).
+
+## 이전 구현·조사 기록 (2026-10-26)
+
 구현·검증일: 2026-10-26. 대표 도메인 `https://popchive.com`, 사이트명 `팝카이브 (POPCHIVE)`, HTML 언어 `ko`.
 
 ## 페이지 메타데이터
