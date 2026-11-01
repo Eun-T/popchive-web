@@ -1,9 +1,13 @@
-// The backend map DTO also includes tags, dates and coverImageUrl; the map needs only these fields.
+// Optional presentation fields already provided by the backend map DTO.
 export type MapPopup = {
   id: string // places.public_id, confirmed in PublicPopupMapper.xml
   name: string
   latitude: number
   longitude: number
+  coverImageUrl?: string | null
+  startDate?: string | null
+  endDate?: string | null
+  primaryTag?: string | null
 }
 
 export type PopupMapResponse = { popups: MapPopup[] }

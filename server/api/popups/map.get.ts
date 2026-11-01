@@ -57,7 +57,17 @@ export default defineEventHandler(async (event): Promise<PopupMapResponse | Seou
       || typeof row.longitude !== 'number' || !Number.isFinite(row.longitude) || Math.abs(row.longitude) > 180) {
       return invalid()
     }
-    return { id: row.id, name: row.name, latitude: row.latitude, longitude: row.longitude }
+    const text = (key: string) => typeof row[key] === 'string' ? row[key] as string : null
+    const image = text('coverImageUrl')
+    const safeImage = image && /^https?:\/\//i.test(image) ? image : null
+    const date = (key: string) => {
+      const value = text(key)
+      return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null
+    }
+    return {
+      id: row.id, name: row.name, latitude: row.latitude, longitude: row.longitude,
+      coverImageUrl: safeImage, startDate: date('startDate'), endDate: date('endDate'), primaryTag: text('primaryTag'),
+    }
   })
   if (new Set(popups.map(popup => popup.id)).size !== popups.length) return invalid()
   return { popups }

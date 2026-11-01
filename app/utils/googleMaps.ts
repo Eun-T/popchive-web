@@ -1,11 +1,14 @@
-// Small SDK surface used here, without an extra runtime package or global google references in SSR.
+/// <reference types="google.maps" />
+// Small SDK surface used here, without global google references in SSR.
 export type MapsListener = { remove(): void }
 export type MapsBounds = { toJSON(): { south: number; north: number; west: number; east: number } }
 export type GoogleMap = {
+  getZoom(): number | undefined
+  panTo(position: { lat: number; lng: number }): void
   getBounds(): MapsBounds | undefined
   addListener(name: string, handler: () => void): MapsListener
 }
-export type GoogleMarker = HTMLElement & { map: GoogleMap | null; position: { lat: number; lng: number }; title: string }
+export type GoogleMarker = HTMLElement & { map: GoogleMap | null; position: { lat: number; lng: number }; title: string; zIndex: number }
 export type GoogleInfoWindow = {
   setContent(content: Node): void
   open(options: { map: GoogleMap; anchor: GoogleMarker; shouldFocus: boolean }): void
@@ -38,7 +41,7 @@ export function loadGoogleMaps(apiKey: string): Promise<GoogleMapsSdk> {
   if (!import.meta.client) return Promise.reject(new Error('Google Maps requires a browser'))
   if (authFailed) return Promise.reject(new Error('Google Maps authentication failed'))
   if (sdkPromise) return sdkPromise
-  const browser = window as MapsWindow
+  const browser = window as unknown as MapsWindow
   sdkPromise = new Promise((resolve, reject) => {
     let settled = false
     let timer: ReturnType<typeof setTimeout> | undefined

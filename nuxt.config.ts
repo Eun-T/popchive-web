@@ -31,6 +31,9 @@ export default defineNuxtConfig({
   ],
   routeRules: {
     '/': { headers: { 'cache-control': 'no-store' } },
+    '/privacy.html': { headers: { 'x-robots-tag': 'noindex, nofollow' } },
+    '/privacy-ja.html': { headers: { 'x-robots-tag': 'noindex, nofollow' } },
+    '/support.html': { headers: { 'x-robots-tag': 'noindex, nofollow' } },
     '/fonts/pretendard/v1.3.9/**': {
       headers: { 'cache-control': 'public, max-age=31536000, immutable' }
     }

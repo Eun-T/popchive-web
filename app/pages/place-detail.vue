@@ -86,9 +86,16 @@ const directionsDestination = computed(() => {
   const item = popup.value;
   if (!item) return null;
   const { latitude, longitude } = item;
-  const hasCoordinates = typeof latitude === 'number' && Number.isFinite(latitude) && Math.abs(latitude) <= 90
-    && typeof longitude === 'number' && Number.isFinite(longitude) && Math.abs(longitude) <= 180;
-  const destination = hasCoordinates ? `${latitude},${longitude}` : item.address?.trim();
+  const hasCoordinates =
+    typeof latitude === "number" &&
+    Number.isFinite(latitude) &&
+    Math.abs(latitude) <= 90 &&
+    typeof longitude === "number" &&
+    Number.isFinite(longitude) &&
+    Math.abs(longitude) <= 180;
+  const destination = hasCoordinates
+    ? `${latitude},${longitude}`
+    : item.address?.trim();
   if (!destination) return null;
   return destination;
 });
@@ -154,8 +161,8 @@ if (import.meta.server && unavailable.value) {
 usePopchiveSeo({
   title: () =>
     popup.value
-      ? `${popup.value.name} | 팝카이브`
-      : "팝업 정보를 찾을 수 없습니다 | 팝카이브",
+      ? `${popup.value.name} | 더플레이브`
+      : "팝업 정보를 찾을 수 없습니다 | 더플레이브",
   description: () =>
     popup.value
       ? popupSeoDescription(popup.value)
@@ -196,23 +203,39 @@ usePopchiveSeo({
     </p>
     <template v-else>
       <div class="detail-top">
-        <div class="detail-poster">
-          <button
-            v-if="popup.coverImageUrl && !failedImages.has(popup.coverImageUrl)"
-            type="button"
-            class="detail-poster__trigger"
-            aria-label="포스터 확대 보기"
-            @click="openPoster"
-          >
-            <img
-              :src="popup.coverImageUrl"
-              :alt="`${popup.name} 포스터`"
-              @error="failedImages.add(popup.coverImageUrl!)"
-            />
-          </button>
-          <p v-else class="detail-poster__empty" role="status">
-            포스터 이미지가 없습니다.
-          </p>
+        <div
+          class="detail-poster-area"
+          :class="{
+            'detail-poster-area--has-image':
+              popup.coverImageUrl && !failedImages.has(popup.coverImageUrl),
+          }"
+          :style="{
+            '--poster-background':
+              popup.coverImageUrl && !failedImages.has(popup.coverImageUrl)
+                ? `url(${JSON.stringify(popup.coverImageUrl)})`
+                : undefined,
+          }"
+        >
+          <div class="detail-poster">
+            <button
+              v-if="
+                popup.coverImageUrl && !failedImages.has(popup.coverImageUrl)
+              "
+              type="button"
+              class="detail-poster__trigger"
+              aria-label="포스터 확대 보기"
+              @click="openPoster"
+            >
+              <img
+                :src="popup.coverImageUrl"
+                :alt="`${popup.name} 포스터`"
+                @error="failedImages.add(popup.coverImageUrl!)"
+              />
+            </button>
+            <p v-else class="detail-poster__empty" role="status">
+              포스터 이미지가 없습니다.
+            </p>
+          </div>
         </div>
         <div class="detail-info">
           <div v-if="metadata.length" class="detail-meta">
@@ -277,15 +300,27 @@ usePopchiveSeo({
               </div>
             </dl>
           </section>
-          <div v-if="popup.officialChannelUrl || directionsDestination" class="detail-actions">
+          <div
+            v-if="popup.officialChannelUrl || directionsDestination"
+            class="detail-actions"
+          >
             <a
               v-if="popup.officialChannelUrl"
               :href="popup.officialChannelUrl"
               target="_blank"
               rel="noopener noreferrer"
               class="detail-official"
-              >공식 채널</a>
-            <PopupDirectionsMenu v-if="directionsDestination" :destination="directionsDestination" :place-name="popup.name" :address="popup.address" :latitude="popup.latitude" :longitude="popup.longitude" :country-code="popup.countryCode" />
+              >공식 채널</a
+            >
+            <PopupDirectionsMenu
+              v-if="directionsDestination"
+              :destination="directionsDestination"
+              :place-name="popup.name"
+              :address="popup.address"
+              :latitude="popup.latitude"
+              :longitude="popup.longitude"
+              :country-code="popup.countryCode"
+            />
           </div>
         </div>
       </div>
@@ -477,6 +512,7 @@ usePopchiveSeo({
    The observer wrapper remains mounted for lazy loading, even without results. */
 .popup-detail :deep(.blog-reviews) {
   display: flow-root;
+
   margin-top: 0;
 }
 .popup-detail :deep(.blog-reviews::before) {
@@ -655,8 +691,13 @@ usePopchiveSeo({
   font-size: 14px;
   font-weight: 600;
 }
-.detail-official { background: #171717; color: white; }
-.detail-actions svg { flex-shrink: 0; }
+.detail-official {
+  background: #171717;
+  color: white;
+}
+.detail-actions svg {
+  flex-shrink: 0;
+}
 .detail-tabs {
   display: flex;
   gap: 24px;
@@ -850,8 +891,41 @@ usePopchiveSeo({
   .detail-top {
     grid-template-columns: minmax(0, 1fr);
   }
+  .detail-poster-area {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .detail-poster-area--has-image {
+    /* Cancel default layout's mobile padding only around the poster. */
+    width: calc(100% + 40px);
+    margin-inline: -20px;
+    padding-block: 24px;
+  }
+  .detail-poster-area--has-image::before,
+  .detail-poster-area--has-image::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+  }
+  .detail-poster-area--has-image::before {
+    inset: -70px;
+    background-image: var(--poster-background);
+    background-position: center;
+    background-size: cover;
+    filter: blur(35px);
+  }
+  .detail-poster-area--has-image::after {
+    inset: 0;
+    background: rgb(0 0 0 / 20%);
+  }
   .detail-poster {
+    position: relative;
+    z-index: 1;
     margin-inline: auto;
+  }
+  .detail-poster-area--has-image .detail-poster {
+    width: 78%;
   }
   .detail-image-grid {
     grid-template-columns: minmax(0, 1fr);

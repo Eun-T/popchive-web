@@ -15,6 +15,8 @@ import { PAGE_SEO } from '#shared/utils/seo';
 import { formatPopupCardPeriod } from '~/utils/formatPopupCardPeriod';
 import { webFeatures } from '~/config/features';
 import { popupCalendarDate, popupDayStatus } from '~/utils/popupDates';
+import { emptyDatePeriod, isValidDateRange, localDateValue, presetDatePeriod } from '#shared/utils/placeDatePeriod';
+import { endingSoonToday } from '#shared/utils/endingSoon';
 
 usePopchiveSeo(PAGE_SEO['/places']);
 
@@ -81,8 +83,45 @@ const browse = usePlacesBrowse(categoryFromRoute());
 await browse.ready;
 const {
   sort, options, optionsError, refreshOptions, appliedFilters, draftFilters, filterGroups, activeChips, appliedCount,
+  appliedPeriod, draftPeriod,
+  openingRange, removeOpeningRange,
   filteredPopups, listStatus, listError, refreshList, nextCursor, moreLoading, moreError, loadMore, removeFilter, selectRegion, selectCategory,
 } = browse;
+const periodPresets = [
+  { mode: 'all', label: '전체' }, { mode: 'today', label: '오늘' }, { mode: 'sevenDays', label: '일주일' },
+] as const;
+const validDraftPeriod = computed(() => draftPeriod.value.mode === 'all'
+  || isValidDateRange(draftPeriod.value.startDate, draftPeriod.value.endDate));
+const periodLabel = computed(() => {
+  const period = appliedPeriod.value;
+  const preset = periodPresets.find(option => option.mode === period.mode);
+  return `${preset && period.mode !== 'all' ? preset.label + ' · ' : ''}${period.startDate} ~ ${period.endDate}`;
+});
+function selectPeriodPreset(mode: 'all' | 'today' | 'sevenDays') {
+  // RN sends visitPeriod=today, which the API resolves using Asia/Seoul.
+  // Use that date explicitly so the general list retains its sort and page size.
+  const today = mode === 'today' ? new Date(`${endingSoonToday()}T12:00:00`) : new Date();
+  draftPeriod.value = presetDatePeriod(mode, today);
+}
+function editPeriodDate(field: 'startDate' | 'endDate', event: Event) {
+  draftPeriod.value = { ...draftPeriod.value, mode: 'custom', [field]: (event.target as HTMLInputElement).value || null };
+}
+function focusPeriodDate(field: 'startDate' | 'endDate') {
+  if (draftPeriod.value[field]) return;
+  // RN defaults an empty start to today and an empty end to today + 7 days.
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + (field === 'endDate' ? 7 : 0));
+  draftPeriod.value = { ...draftPeriod.value, mode: 'custom', [field]: localDateValue(date) };
+}
+function resetDraftFilters() {
+  draftFilters.value = emptyFilters();
+  draftPeriod.value = emptyDatePeriod();
+}
+function removePeriod() {
+  appliedPeriod.value = emptyDatePeriod();
+  draftPeriod.value = emptyDatePeriod();
+}
 function toggleDraft(group: FilterGroup, value: string) { browse.toggleDraft(group.key, value); }
 async function onSelectRegion(countryCode: PlaceCountry, regionId: number) {
   if (!selectRegion(countryCode, regionId)) return;
@@ -191,6 +230,7 @@ function openFilters() {
   if (!dialog || dialog.open) return;
   clearSheetAnimation();
   draftFilters.value = copyFilters(appliedFilters.value);
+  draftPeriod.value = { ...appliedPeriod.value };
   isSheetClosing.value = false;
   isSheetVisible.value = false;
   sheetDragOffset.value = 0;
@@ -215,6 +255,7 @@ function onDialogClosed() {
   isSheetClosing.value = false;
   sheetDragOffset.value = 0;
   draftFilters.value = copyFilters(appliedFilters.value);
+  draftPeriod.value = { ...appliedPeriod.value };
   restorePageScroll();
   if (wasOpen && !isUnmounting)
     filterTrigger.value?.focus({ preventScroll: true });
@@ -250,7 +291,9 @@ function onSheetTransitionEnd(event: TransitionEvent) {
   }
 }
 function applyFilters() {
+  if (!validDraftPeriod.value) return;
   appliedFilters.value = copyFilters(draftFilters.value);
+  appliedPeriod.value = { ...draftPeriod.value };
   closeFilters();
 }
 function startSheetDrag(event: PointerEvent) {
@@ -407,6 +450,14 @@ function formatPeriod(popup: PlacePopup) {
             <span>{{ chip.label }}</span>
             <X :size="12" aria-hidden="true" />
           </button>
+          <button v-if="appliedPeriod.mode !== 'all'" type="button" class="places-applied-chip"
+            :aria-label="`${periodLabel} 기간 조건 삭제`" @click="removePeriod">
+            <span>{{ periodLabel }}</span><X :size="12" aria-hidden="true" />
+          </button>
+          <button v-if="openingRange.active" type="button" class="places-applied-chip"
+            :aria-label="`신규 오픈 ${openingRange.from} ~ ${openingRange.to} 조건 삭제`" @click="removeOpeningRange">
+            <span>신규 오픈 {{ openingRange.from }} ~ {{ openingRange.to }}</span><X :size="12" aria-hidden="true" />
+          </button>
         </div>
         <PlacesSortMenu v-model="sort" />
       </div>
@@ -452,7 +503,7 @@ function formatPeriod(popup: PlacePopup) {
           <div v-if="popup.regionName || popup.tags.length" class="places-card__metadata">
             <p v-if="popup.regionName" class="places-card__location"><MapPin :size="14" aria-hidden="true" /><span :title="popup.regionName">{{ popup.regionName }}</span></p>
             <ul v-if="popup.tags.length" class="places-card__tags" aria-label="팝업 태그">
-              <li v-for="tag in popup.tags" :key="tag.id" :title="tag.name">{{ tag.name }}</li>
+              <TagChip v-for="tag in popup.tags" :key="tag.id" as="li" :title="tag.name">{{ tag.name }}</TagChip>
             </ul>
           </div>
         </li>
@@ -573,18 +624,50 @@ function formatPeriod(popup: PlacePopup) {
               </button>
             </div>
           </fieldset>
+          <fieldset class="places-filter-group">
+            <legend>기간</legend>
+            <div class="places-filter-group__options">
+              <button v-for="preset in periodPresets" :key="preset.mode" type="button"
+                class="places-filter-option"
+                :class="{ 'places-filter-option--selected': draftPeriod.mode === preset.mode }"
+                :aria-pressed="draftPeriod.mode === preset.mode"
+                @click="selectPeriodPreset(preset.mode)">
+                {{ preset.label }}
+              </button>
+              <button type="button" class="places-filter-option" @click="draftPeriod = emptyDatePeriod()">기간 초기화</button>
+            </div>
+            <div class="places-period-dates">
+              <label for="places-period-start">시작일
+                <input id="places-period-start" type="date" min="0001-01-01" max="9999-12-31"
+                  :value="draftPeriod.startDate ?? ''" :aria-invalid="!validDraftPeriod"
+                  :aria-describedby="!validDraftPeriod ? 'places-period-error' : undefined"
+                  @focus="focusPeriodDate('startDate')" @input="editPeriodDate('startDate', $event)" />
+              </label>
+              <span aria-hidden="true">~</span>
+              <label for="places-period-end">종료일
+                <input id="places-period-end" type="date" min="0001-01-01" max="9999-12-31"
+                  :value="draftPeriod.endDate ?? ''" :aria-invalid="!validDraftPeriod"
+                  :aria-describedby="!validDraftPeriod ? 'places-period-error' : undefined"
+                  @focus="focusPeriodDate('endDate')" @input="editPeriodDate('endDate', $event)" />
+              </label>
+            </div>
+            <p v-if="!validDraftPeriod" id="places-period-error" class="places-period-error" role="alert">
+              {{ draftPeriod.startDate && draftPeriod.endDate ? '종료일은 시작일보다 빠를 수 없습니다.' : '시작일과 종료일을 모두 올바르게 선택해 주세요.' }}
+            </p>
+          </fieldset>
         </div>
         <footer class="places-filter-dialog__footer">
           <button
             type="button"
             class="places-filter-dialog__reset"
-            @click="draftFilters = emptyFilters()"
+            @click="resetDraftFilters"
           >
             초기화
           </button>
           <button
             type="button"
             class="places-filter-dialog__apply"
+            :disabled="!validDraftPeriod"
             @click="applyFilters"
           >
             결과 보기
@@ -714,7 +797,6 @@ function formatPeriod(popup: PlacePopup) {
 .places-card__location svg { flex-shrink: 0; }
 .places-card__location span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .places-card__tags { display: flex; align-items: center; gap: 4px; min-width: 0; margin: 0; padding: 0; list-style: none; }
-.places-card__tags li { min-width: 0; padding: 2px 6px; border-radius: 4px; background: #f3f4f6; color: #4b5563; font-size: 12px; line-height: 18px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .places-card__image-state {
   position: absolute;
   inset: 0;
@@ -973,6 +1055,48 @@ function formatPeriod(popup: PlacePopup) {
   padding: var(--ds-space-16) var(--ds-space-24);
   border-top: 1px solid var(--ds-border);
   background: var(--ds-background);
+}
+.places-period-dates {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--ds-space-8);
+  margin-top: var(--ds-space-16);
+}
+.places-period-dates label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: var(--ds-space-8);
+  color: var(--ds-text);
+  font-size: var(--ds-label-size);
+}
+.places-period-dates input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--ds-space-8);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-8);
+  background: var(--ds-background);
+  color: var(--ds-text);
+  font: inherit;
+  font-size: 16px;
+}
+.places-period-dates input:focus-visible {
+  outline: 2px solid var(--ds-text);
+  outline-offset: 2px;
+}
+.places-period-dates > span { align-self: center; }
+.places-period-error {
+  margin-top: var(--ds-space-8);
+  color: var(--ds-secondary);
+  font-size: var(--ds-label-size);
+}
+.places-filter-dialog__apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .places-filter-dialog__reset,
 .places-filter-dialog__apply {

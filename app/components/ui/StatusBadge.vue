@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps<{ status: 'ongoing' | 'upcoming' | 'ended' }>()
+const props = defineProps<{ status: 'ongoing' | 'upcoming' | 'ended'; label?: string }>()
 const statusStyles = {
   ongoing: { label: '운영 중', class: 'bg-brand-soft text-brand-strong' },
   upcoming: { label: '오픈 예정', class: 'bg-info-soft text-info-strong' },
@@ -12,5 +12,5 @@ const current = computed(() => statusStyles[props.status])
 </script>
 
 <template>
-  <span class="inline-flex items-center rounded-rn-4 px-rn-8 py-rn-4 text-caption font-semibold" :class="current.class">{{ current.label }}</span>
+  <span class="inline-flex items-center rounded-rn-4 px-rn-8 py-rn-4 text-caption font-semibold" :class="current.class">{{ label ?? current.label }}</span>
 </template>

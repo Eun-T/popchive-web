@@ -14,7 +14,7 @@ export function ga4Page(path: string): { location: string; title: string } | nul
     return { location: `${SITE_URL}${clean}`, title: PAGE_SEO[clean as keyof typeof PAGE_SEO].title }
   }
   if (clean.startsWith('/places/') && publicPopupId(clean.slice('/places/'.length))) {
-    return { location: `${SITE_URL}/places/:publicId`, title: '팝업 상세 | 팝카이브' }
+    return { location: `${SITE_URL}/places/:publicId`, title: '팝업 상세 | 더플레이브' }
   }
   return null
 }

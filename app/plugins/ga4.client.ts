@@ -1,3 +1,4 @@
+import { isProductionSeoHost } from '#shared/utils/seo'
 import { createGa4Tracker } from '~/utils/ga4'
 
 export default defineNuxtPlugin(nuxtApp => {
@@ -11,7 +12,7 @@ export default defineNuxtPlugin(nuxtApp => {
   let track: ReturnType<typeof createGa4Tracker> | undefined
   nuxtApp.hook('app:mounted', () => {
     // Reuse the existing SSR production-host / Vercel / Netlify context check.
-    if (!production.value || !['popchive.com', 'www.popchive.com'].includes(window.location.hostname)) return
+    if (!production.value || !isProductionSeoHost(window.location.hostname)) return
     track = createGa4Tracker(measurementId)
     track(router.currentRoute.value.path)
   })

@@ -4,7 +4,7 @@ import HomeQuickSearch from '~/components/home/HomeQuickSearch.vue'
 import { normalizeSearchQuery, validQuickSearch } from '#shared/utils/quickSearch'
 
 definePageMeta({ hideSidebar: false })
-usePopchiveSeo({ title: '팝업 검색 | 팝카이브', description: '팝업 이름으로 검색하고 새로운 팝업을 찾아보세요.', noindex: true })
+usePopchiveSeo({ title: '팝업 검색 | 더플레이브', description: '팝업 이름으로 검색하고 새로운 팝업을 찾아보세요.', noindex: true })
 const route = useRoute()
 const router = useRouter()
 function back() {

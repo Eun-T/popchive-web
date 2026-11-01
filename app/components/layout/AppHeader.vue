@@ -86,7 +86,7 @@ onBeforeUnmount(() => {
       <div class="app-header__start">
         <slot name="brand">
           <NuxtLink to="/" class="app-header__brand ds-control">
-            <img src="/logo.png" alt="POPCHIVE" class="app-header__logo" />
+            <img src="/logo.png" alt="더플레이브" class="app-header__logo" />
           </NuxtLink>
         </slot>
       </div>

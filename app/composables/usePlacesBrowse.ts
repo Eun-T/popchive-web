@@ -1,5 +1,7 @@
 import type { PlaceListQuery, PlaceOptions, PlacePage, PlacePopup, PlaceStatus, PlaceSort } from '../../shared/types/places'
 import { PLACE_PAGE_SIZE } from '#shared/types/places'
+import { emptyDatePeriod, isValidDateRange } from '#shared/utils/placeDatePeriod'
+import type { PlaceDatePeriod } from '#shared/utils/placeDatePeriod'
 
 export type PlaceFilterKey = 'countryCode' | 'region' | 'category' | 'status'
 export type PlaceFilters = Record<PlaceFilterKey, string[]>
@@ -9,9 +11,64 @@ export function copyPlaceFilters(filters: PlaceFilters): PlaceFilters {
 }
 
 export function usePlacesBrowse(initialCategory?: number) {
+  const route = useRoute()
+  const router = useRouter()
+  // URL-only start-date condition; it is independent of the modal's drafts.
+  const openingRange = computed(() => {
+    const from = route.query.openingFrom, to = route.query.openingTo
+    const present = from !== undefined || to !== undefined
+    const valid = typeof from === 'string' && typeof to === 'string' && isValidDateRange(from, to)
+    return { from, to, active: present && valid, invalid: present && !valid }
+  })
+  function removeOpeningRange() {
+    const { openingFrom: _, openingTo: __, ...query } = route.query
+    void router.replace({ query })
+  }
+  function periodFromRoute(): PlaceDatePeriod {
+    const start = route.query.operatingFrom, end = route.query.operatingTo
+    return typeof start === 'string' && typeof end === 'string' && isValidDateRange(start, end)
+      ? { mode: 'custom', startDate: start, endDate: end } : emptyDatePeriod()
+  }
+  const appliedPeriod = ref(periodFromRoute())
+  const draftPeriod = ref<PlaceDatePeriod>({ ...appliedPeriod.value })
+  watch(() => [route.query.operatingFrom, route.query.operatingTo], () => {
+    const period = periodFromRoute()
+    if (period.startDate !== appliedPeriod.value.startDate || period.endDate !== appliedPeriod.value.endDate) {
+      appliedPeriod.value = period
+      draftPeriod.value = { ...period }
+    }
+  })
   const sort = ref<PlaceSort>('LATEST')
-  const appliedFilters = ref({ ...emptyPlaceFilters(), category: initialCategory === undefined ? [] : [String(initialCategory)] })
-  const draftFilters = ref(emptyPlaceFilters())
+  function statusFromRoute(): string[] {
+    const status = route.query.status
+    return typeof status === 'string' && ['ONGOING', 'UPCOMING', 'ENDED'].includes(status) ? [status] : []
+  }
+  const appliedFilters = ref({ ...emptyPlaceFilters(), category: initialCategory === undefined ? [] : [String(initialCategory)], status: statusFromRoute() })
+  const draftFilters = ref(copyPlaceFilters(appliedFilters.value))
+  watch(() => route.query.status, () => {
+    const status = statusFromRoute()
+    if (status[0] !== appliedFilters.value.status[0]) {
+      appliedFilters.value = { ...appliedFilters.value, status }
+      draftFilters.value.status = [...status]
+    }
+  })
+  // Merge period and status changes in one navigation when the dialog applies both.
+  watch([appliedPeriod, () => appliedFilters.value.status[0]], ([period, status], [previousPeriod, previousStatus]) => {
+    const query = { ...route.query }
+    if (period !== previousPeriod) {
+      delete query.operatingFrom
+      delete query.operatingTo
+      if (period.mode !== 'all' && isValidDateRange(period.startDate, period.endDate)) {
+        query.operatingFrom = period.startDate!
+        query.operatingTo = period.endDate!
+      }
+    }
+    if (status !== previousStatus) {
+      if (status) query.status = status
+      else delete query.status
+    }
+    if (JSON.stringify(query) !== JSON.stringify(route.query)) void router.replace({ query })
+  })
   const filtersQuery = computed<PlaceListQuery>(() => ({
     limit: PLACE_PAGE_SIZE,
     sort: sort.value,
@@ -19,13 +76,19 @@ export function usePlacesBrowse(initialCategory?: number) {
     ...(appliedFilters.value.region.length ? { regionIds: [...appliedFilters.value.region].sort((a, b) => Number(a) - Number(b)).join(',') } : {}),
     ...(appliedFilters.value.category.length ? { tagIds: [...appliedFilters.value.category].sort((a, b) => Number(a) - Number(b)).join(',') } : {}),
     ...(appliedFilters.value.status[0] ? { status: appliedFilters.value.status[0] as PlaceStatus } : {}),
+    ...(appliedPeriod.value.mode !== 'all' && isValidDateRange(appliedPeriod.value.startDate, appliedPeriod.value.endDate)
+      ? { operatingFrom: appliedPeriod.value.startDate!, operatingTo: appliedPeriod.value.endDate! } : {}),
+    ...(openingRange.value.active
+      ? { openingFrom: openingRange.value.from as string, openingTo: openingRange.value.to as string } : {}),
   }))
-  const requestKey = computed(() => `places:all:${JSON.stringify(filtersQuery.value)}`)
+  const requestKey = computed(() => `places:all:${JSON.stringify(filtersQuery.value)}${openingRange.value.invalid ? ':invalid-opening-range' : ''}`)
   const optionsRequest = useFetch<PlaceOptions>('/api/places/options', { key: 'places:options', retry: 0, dedupe: 'defer' })
   const pageRequest = useAsyncData(requestKey, async (_nuxtApp, { signal }) => {
     // Capture the query before awaiting; never attribute a late response to a new sort.
     const key = requestKey.value
     const query = { ...filtersQuery.value }
+    // Never fall back to an unfiltered list for a malformed or incomplete URL.
+    if (openingRange.value.invalid) throw createError({ statusCode: 400, statusMessage: 'Invalid opening date range' })
     const page = await $fetch<PlacePage>('/api/places/popups', { query, signal, retry: 0 })
     return { ...page, requestKey: key }
   }, { server: true, dedupe: 'cancel' })
@@ -124,7 +187,8 @@ export function usePlacesBrowse(initialCategory?: number) {
   onBeforeUnmount(() => { disposed = true; controller?.abort() })
   return {
     ready: Promise.all([optionsRequest, pageRequest]), options: optionsRequest.data, optionsError: optionsRequest.error,
-    sort, appliedFilters, draftFilters, filterGroups, activeChips, appliedCount: computed(() => activeChips.value.length),
+    sort, appliedFilters, draftFilters, appliedPeriod, draftPeriod, openingRange, removeOpeningRange, filterGroups, activeChips,
+    appliedCount: computed(() => activeChips.value.length + (appliedPeriod.value.mode === 'all' ? 0 : 1) + (openingRange.value.active ? 1 : 0)),
     filteredPopups, listStatus: pageRequest.status, listError: pageRequest.error, refreshList: pageRequest.refresh,
     refreshOptions: optionsRequest.refresh, nextCursor, moreLoading, moreError, loadMore, toggleDraft, removeFilter, selectRegion, selectCategory,
   }

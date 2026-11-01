@@ -12,6 +12,10 @@ export interface PlaceListQuery {
   regionIds?: string
   tagIds?: string
   status?: PlaceStatus
+  operatingFrom?: string
+  operatingTo?: string
+  openingFrom?: string
+  openingTo?: string
   cursor?: string
 }
 export interface PlacePopup {

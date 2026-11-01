@@ -228,9 +228,9 @@ onBeforeUnmount(() => {
                 class="recommendations__tags"
                 aria-label="팝업 태그"
               >
-                <li v-for="tag in popup.tags.slice(0, 2)" :key="tag.id">
+                <TagChip v-for="tag in popup.tags.slice(0, 2)" :key="tag.id" as="li" :title="tag.name">
                   {{ tag.name }}
-                </li>
+                </TagChip>
               </ul>
             </NuxtLink>
           </li>
@@ -388,18 +388,6 @@ onBeforeUnmount(() => {
   gap: 4px;
   padding: 0;
   list-style: none;
-}
-.recommendations__tags li {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: #f3f4f6;
-  color: #4b5563;
-  font-size: 12px;
-  line-height: 18px;
 }
 .recommendations__skeleton > span {
   display: block;

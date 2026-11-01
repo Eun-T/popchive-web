@@ -1,6 +1,7 @@
 import { normalizePopupRecommendations } from '../../../../shared/utils/popupRecommendations'
+import type { PopupRecommendationsResponse } from '../../../../shared/types/popupRecommendations'
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event): Promise<PopupRecommendationsResponse> => {
   setResponseHeader(event, 'cache-control', 'no-store')
   const id = getRouterParam(event, 'id') ?? ''
   const kind = getRouterParam(event, 'recommendation')
@@ -13,7 +14,7 @@ export default defineEventHandler(async event => {
   }
   try {
     // Only the two verified public GET endpoints; never forward visitor credentials.
-    const response = await $fetch<unknown>(`/api/popups/${encodeURIComponent(id)}/${kind}`, {
+    const response: unknown = await $fetch<unknown>(`/api/popups/${encodeURIComponent(id)}/${kind}`, {
       baseURL: useRuntimeConfig(event).apiBase,
       query: { limit: 7, languageCode: 'ko' }, method: 'GET',
       headers: { accept: 'application/json' }, credentials: 'omit', redirect: 'error', timeout: 10_000, retry: 0,

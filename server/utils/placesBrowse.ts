@@ -67,6 +67,9 @@ export const getPlacesPage = defineCachedFunction(async (
     const regionId = row.regionId === null ? null : id(row.regionId)
     const tagIds = options(row.tags).map(tag => tag.id)
     const startDate = date(row.startDate), endDate = date(row.endDate)
+    // Validate the upstream contract; do not filter or truncate a fetched page.
+    if ((query.openingFrom && (!startDate || startDate < query.openingFrom))
+      || (query.openingTo && (!startDate || startDate > query.openingTo))) return invalid()
     if ((startDate && endDate && startDate > endDate)
       || (query.countryCode && countryCode !== query.countryCode)
       || (requestedRegions && (regionId === null || !requestedRegions.includes(regionId)))
@@ -74,7 +77,10 @@ export const getPlacesPage = defineCachedFunction(async (
     if (query.status === 'ONGOING' && (!startDate || !endDate || startDate > asOf || endDate < asOf)) return invalid()
     if (query.status === 'UPCOMING' && (!startDate || startDate <= asOf)) return invalid()
     if (query.status === 'ENDED' && (!endDate || endDate >= asOf)) return invalid()
-    if (!query.status && (!endDate || endDate < asOf)) return invalid()
+    // Direct ranges allow historical results unless an explicit status excludes them.
+    if (!query.status && !query.operatingFrom && (!endDate || endDate < asOf)) return invalid()
+    if (query.operatingFrom && query.operatingTo
+      && (!startDate || !endDate || startDate > query.operatingTo || endDate < query.operatingFrom)) return invalid()
     const image = row.coverImageUrl === null ? null : text(row.coverImageUrl)
     if (image && !['http:', 'https:'].includes(new URL(image).protocol)) return invalid()
     return { id: text(row.publicId), title: text(row.name), image, startDate, endDate, countryCode, regionId, tagIds }

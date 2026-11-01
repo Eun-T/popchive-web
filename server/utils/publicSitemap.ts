@@ -27,7 +27,7 @@ export const getPublicSitemap = defineCachedFunction(async (apiBase: string) => 
     throw createError({ statusCode: 503, statusMessage: 'Sitemap source exceeds index capacity' })
   }
   return { urls, fetchedAt: Date.now() }
-}, { name: 'public-sitemap-v1', maxAge: SITEMAP_CACHE_SECONDS, swr: false })
+}, { name: 'public-sitemap-theplave-v2', maxAge: SITEMAP_CACHE_SECONDS, swr: false })
 
 export function sitemapXml(urls: string[]): string {
   const escape = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&apos;')

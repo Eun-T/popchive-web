@@ -154,6 +154,14 @@ onBeforeUnmount(() => clearInterval(dateTimer))
   line-height: 1.35;
 }
 @media (width < 768px) {
+  .home-featured-grid__date {
+    font-size: 17px;
+    line-height: 24px;
+  }
+  .home-featured-grid__title {
+    font-size: 21px;
+    line-height: 28px;
+  }
   .home-featured-viewport {
     /* Reveal neighbours in the existing 20px page gutters without resizing cards. */
     width: calc(100% + 40px);
