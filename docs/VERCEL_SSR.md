@@ -20,7 +20,7 @@ Vercel Project Settings → Environment Variables에서 **Production·Preview**�
 
 | 변수 | 기존 runtimeConfig 연결 | 등록할 값 |
 | --- | --- | --- |
-| `NUXT_API_BASE` | 서버 전용 `apiBase` | 기존 백엔드 주소, 기본 `https://api.popchive.com` |
+| `NUXT_API_BASE` | 서버 전용 `apiBase` | 신규 웹 API 주소 `https://api.theplave.co.kr` (기존 override가 있으면 변경 후 재배포) |
 | `NUXT_PUBLIC_GOOGLE_MAPS_API_KEY` | `public.googleMapsApiKey` | 기존 Maps JavaScript API 웹 키 |
 | `NUXT_PUBLIC_GOOGLE_STATIC_MAPS_API_KEY` | `public.googleStaticMapsApiKey` | 기존 별도 Maps Static API 웹 키 |
 | `NUXT_PUBLIC_GOOGLE_STATIC_MAP_ID` | `public.googleStaticMapId` | 기존 홈 Static Maps map ID |

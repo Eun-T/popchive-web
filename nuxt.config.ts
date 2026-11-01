@@ -12,7 +12,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     // Server only. Override with NUXT_API_BASE; never expose through public config.
-    apiBase: 'https://api.popchive.com',
+    apiBase: 'https://api.theplave.co.kr',
     naverClientId: '', // NUXT_NAVER_CLIENT_ID — server only
     naverClientSecret: '', // NUXT_NAVER_CLIENT_SECRET — server only
     public: {

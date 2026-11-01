@@ -78,7 +78,11 @@
 
 ## 설정과 공개 캐시
 
-`nuxt.config.ts`의 서버 전용 `runtimeConfig.apiBase` 기본값은 `https://api.popchive.com`이다. 운영 환경에서 `NUXT_API_BASE`로 변경할 수 있다. `runtimeConfig.public`에 넣지 않는다.
+`nuxt.config.ts`의 서버 전용 `runtimeConfig.apiBase` 기본값은 `https://api.theplave.co.kr`이다. 운영 환경에서 `NUXT_API_BASE`로 변경할 수 있다. `runtimeConfig.public`에 넣지 않는다.
+
+웹 API 도메인 전환 시 Vercel의 `NUXT_API_BASE`도 `https://api.theplave.co.kr`로 설정한다. 기존 값이 있으면 코드 기본값보다 우선하므로 재배포 전에 확인한다. `NUXT_PUBLIC_API_BASE`나 `API_BASE_URL`은 현재 코드에서 사용하지 않는다. 브라우저·SSR의 `/api/**` 경로와 쿼리, 이미지 URL, Naver 검색 API는 유지한다. 기존 iOS 앱의 `https://api.popchive.com`은 계속 유지하며 이 웹 작업에서 변경하지 않는다.
+
+현재 웹의 로그인·회원가입은 비활성 상태이고 OAuth·세션 전달은 구현되어 있지 않다. 공개 프록시는 인증정보를 전달하지 않으므로 이번 전환에 쿠키 Domain·SameSite·Secure나 백엔드 CORS 변경을 요구하지 않는다. 향후 인증 구현 시에는 별도 계약을 확인한다.
 
 백엔드 호출에는 명시적인 GET과 `Accept: application/json`만 사용한다. 방문자의 Cookie·Authorization·Origin을 전달하지 않으며 timeout10초, 자동 재시도0회다. 브라우저는 같은 origin의 Nuxt API를 사용하므로 백엔드 브라우저 CORS 변경은 필요하지 않다.
 
