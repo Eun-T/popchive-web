@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       meta: [
-        { name: 'naver-site-verification', content: 'fc99d70b029e697a0a5f2ab63f9fb02a34bef189' }
+        { name: 'naver-site-verification', content: '23aee0679433d4cb1b5a5609ee4a4a804312857d' }
       ]
     }
   },
