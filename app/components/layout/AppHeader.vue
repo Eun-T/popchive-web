@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
 .app-header__logo {
   display: block;
   width: auto;
-  height: 40px;
+  height: 30px;
   max-width: 100%;
   object-fit: contain;
 }
