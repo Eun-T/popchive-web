@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { appleAuthCommand } from './appleAuthStore'
 import { authBackend, deviceId, establishWebSession, type Tokens } from './webAuth'
-import { normalizeNickname, validNickname } from '../../shared/utils/auth'
+import { normalizeNickname, validNickname } from '#shared/utils/auth'
 
 const sessionCookie = '__Host-plave_apple_attempt'
 const signupCookie = '__Host-plave_apple_signup'

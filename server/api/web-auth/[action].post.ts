@@ -1,4 +1,4 @@
-import { normalizeEmail, normalizeNickname, validEmail, validNickname, validPassword } from '../../../shared/utils/auth'
+import { normalizeEmail, normalizeNickname, validEmail, validNickname, validPassword } from '#shared/utils/auth'
 import { authBackend, loginWeb, logoutWeb, restoreWeb } from '../../utils/webAuth'
 import { mypageAction, mypageActions } from '../../utils/mypageActions'
 import { googleWebAuth } from '../../utils/googleWebAuth'

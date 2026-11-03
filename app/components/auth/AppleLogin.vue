@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { loadAppleIdentity, type AppleIdentity } from '~/utils/appleIdentity'
 import { authError } from '~/composables/useAuth'
-import { normalizeNickname, validNickname } from '../../../shared/utils/auth'
+import { normalizeNickname, validNickname } from '#shared/utils/auth'
 import type { AppleSignup } from '../../../shared/types/auth'
 import policies from '~/content/authPolicies.json'
 

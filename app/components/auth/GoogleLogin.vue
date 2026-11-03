@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { loadGoogleIdentity } from '~/utils/googleIdentity'
 import { authError } from '~/composables/useAuth'
-import { normalizeNickname, validNickname } from '../../../shared/utils/auth'
+import { normalizeNickname, validNickname } from '#shared/utils/auth'
 import type { GoogleSignup } from '../../../shared/types/auth'
 import policies from '~/content/authPolicies.json'
 

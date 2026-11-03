@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { authBackend, deviceId, establishWebSession, type Tokens } from './webAuth'
 import type { GoogleSignup } from '../../shared/types/auth'
-import { normalizeNickname, validNickname } from '../../shared/utils/auth'
+import { normalizeNickname, validNickname } from '#shared/utils/auth'
 
 const nonceCookie = 'plave_google_nonce'
 const signupCookie = 'plave_google_signup'

@@ -4,7 +4,7 @@ import HomeNewPopups from '~/components/home/HomeNewPopups.vue'
 import { authError } from '~/composables/useAuth'
 import type { AuthUser } from '../../../shared/types/auth'
 import type { HomePopupCard } from '../../../shared/types/home'
-import { normalizeNickname, validNickname, validPassword } from '../../../shared/utils/auth'
+import { normalizeNickname, validNickname, validPassword } from '#shared/utils/auth'
 
 interface Favorite { publicId: string; name: string; coverImageUrl: string | null; startDate: string | null; endDate: string | null; regionName: string | null }
 interface Review { id: number; content: string; rating: number; popup: { publicId: string; title: string }; images: string[]; createdAt: string }

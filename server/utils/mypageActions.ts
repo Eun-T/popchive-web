@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { authBackend, clearAuth, restoreWeb } from './webAuth'
-import { normalizeNickname, validNickname, validPassword } from '../../shared/utils/auth'
+import { normalizeNickname, validNickname, validPassword } from '#shared/utils/auth'
 
 export const mypageActions = ['my-favorites', 'unfavorite', 'my-reviews', 'review-edit', 'review-update', 'review-delete', 'my-nickname', 'my-password', 'withdraw']
 export async function mypageAction(event: H3Event, action: string, body: Record<string, unknown>) {

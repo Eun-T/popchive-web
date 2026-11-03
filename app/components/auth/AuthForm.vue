@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { normalizeEmail, normalizeNickname, validEmail, validPassword, validNickname } from '../../../shared/utils/auth'
+import { normalizeEmail, normalizeNickname, validEmail, validPassword, validNickname } from '#shared/utils/auth'
 import { authError } from '~/composables/useAuth'
 import policies from '~/content/authPolicies.json'
 import GoogleLogin from './GoogleLogin.vue'
