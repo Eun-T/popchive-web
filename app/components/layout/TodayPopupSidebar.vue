@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowUpRight } from "@lucide/vue";
 import type { TodayPopupsResponse } from "#shared/types/todayPopups";
 import { endingSoonToday } from "#shared/utils/endingSoon";
 import { popupDayStatus } from "~/utils/popupDates";
@@ -15,13 +16,7 @@ const { data, status, error, refresh } = await useFetch<TodayPopupsResponse>(
     retry: 0,
   },
 );
-const todayLabel = computed(() =>
-  new Intl.DateTimeFormat("ko-KR", {
-    month: "long",
-    day: "numeric",
-    timeZone: "Asia/Seoul",
-  }).format(new Date(`${today.value}T00:00:00+09:00`)),
-);
+const todayLabel = computed(() => today.value.slice(5, 10).replace("-", "."));
 
 const failedImages = ref(new Set<string>());
 const popups = computed(() =>
@@ -79,10 +74,9 @@ onBeforeUnmount(() => {
 <template>
   <aside aria-labelledby="today-popup-title" class="today-popup-sidebar">
     <header class="today-popup-sidebar__header">
-      <h2 id="today-popup-title">TODAY.</h2>
+      <h2 id="today-popup-title">오늘의 팝업</h2>
       <time :datetime="today">{{ todayLabel }}</time>
     </header>
-    <p class="today-popup-sidebar__caption">오늘 진행 중인 팝업</p>
     <p v-if="error" class="today-popup-sidebar__state" role="status">
       오늘의 팝업을 불러오지 못했습니다.
     </p>
@@ -138,11 +132,17 @@ onBeforeUnmount(() => {
         </NuxtLink>
       </li>
     </ol>
+    <NuxtLink to="/places?tab=all" class="today-popup-sidebar__all">
+      <span>전체 팝업 보기</span>
+      <!-- <ArrowUpRight :size="16" aria-hidden="true" /> -->
+    </NuxtLink>
   </aside>
 </template>
 
 <style scoped>
 .today-popup-sidebar {
+  display: flex;
+  flex-direction: column;
   position: sticky;
   top: 88px;
   align-self: start;
@@ -155,19 +155,40 @@ onBeforeUnmount(() => {
   background: #fff;
   color: #111827;
 }
+.today-popup-sidebar > * {
+  flex-shrink: 0;
+}
+.today-popup-sidebar__all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+.today-popup-sidebar__all:hover {
+  color: #111111;
+}
 .today-popup-sidebar__header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
   padding-bottom: 12px;
-  border-bottom: 2px solid var(--ds-accent-purple);
+  border-bottom: 1px solid #e5e7eb;
 }
 .today-popup-sidebar__header h2 {
-  font-size: 30px;
-  font-weight: 800;
-  line-height: 34px;
-  letter-spacing: -1.2px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  white-space: nowrap;
 }
 .today-popup-sidebar__header time {
   flex-shrink: 0;
@@ -176,12 +197,6 @@ onBeforeUnmount(() => {
   font-weight: 500;
   line-height: 18px;
   font-variant-numeric: tabular-nums;
-}
-.today-popup-sidebar__caption {
-  margin-top: 12px;
-  color: #6b7280;
-  font-size: 12px;
-  line-height: 18px;
 }
 .today-popup-sidebar__list {
   margin: 2px 0 0;
