@@ -143,7 +143,7 @@ onBeforeUnmount(() => {
     <div v-show="!signup" class="google-login__button" :class="{ 'is-disabled': locked || popup }" :inert="locked || popup" :aria-disabled="locked || popup">
       <div ref="button" />
     </div>
-    <p v-if="loading || exchanging" role="status">{{ exchanging ? 'Google 인증을 확인하고 있습니다.' : 'Google 로그인을 준비하고 있습니다.' }}</p>
+    <p v-if="exchanging" role="status">Google 인증을 확인하고 있습니다.</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <p v-if="error" role="alert">{{ error }}</p>
     <button v-if="clientId && !ready && !loading" type="button" :disabled="locked" @click="setup()">Google 로그인 다시 준비</button>
