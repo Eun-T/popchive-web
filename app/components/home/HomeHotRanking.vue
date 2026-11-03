@@ -127,8 +127,8 @@ watch(emblaApi, (api, _, onCleanup) => {
   flex-shrink: 0;
   padding: 2px 6px;
   border-radius: 6px;
-  background: var(--ds-accent-purple-soft);
-  color: var(--ds-accent-purple);
+  background: #F3F4F6;
+  color: #111111;
   font-size: 13px;
   font-weight: 600;
   line-height: 20px;

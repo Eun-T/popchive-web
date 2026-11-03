@@ -1,43 +1,61 @@
 <script setup lang="ts">
-import HomeQuickSearch from '~/components/home/HomeQuickSearch.vue'
-import HomeFeaturedGrid from '~/components/home/HomeFeaturedGrid.vue'
-import HomeCategoryShortcuts from '~/components/home/HomeCategoryShortcuts.vue'
-import HomeNewPopups from '~/components/home/HomeNewPopups.vue'
-import HomeHotRanking from '~/components/home/HomeHotRanking.vue'
-import HomeJapanNewPopups from '~/components/home/HomeJapanNewPopups.vue'
-import HomeSeoulMap from '~/components/home/HomeSeoulMap.vue'
-import { canonicalUrl, PAGE_SEO, SITE_NAME, SITE_ALTERNATE_NAME } from '#shared/utils/seo'
-import { webFeatures } from '~/config/features'
+import HomeQuickSearch from "~/components/home/HomeQuickSearch.vue";
+import HomeFeaturedGrid from "~/components/home/HomeFeaturedGrid.vue";
+import HomeCategoryShortcuts from "~/components/home/HomeCategoryShortcuts.vue";
+import HomeNewPopups from "~/components/home/HomeNewPopups.vue";
+import HomeHotRanking from "~/components/home/HomeHotRanking.vue";
+import HomeJapanNewPopups from "~/components/home/HomeJapanNewPopups.vue";
+import HomeSeoulMap from "~/components/home/HomeSeoulMap.vue";
+import {
+  canonicalUrl,
+  PAGE_SEO,
+  SITE_NAME,
+  SITE_ALTERNATE_NAME,
+} from "#shared/utils/seo";
+import { webFeatures } from "~/config/features";
 
-usePopchiveSeo({ ...PAGE_SEO['/'], image: '/logo.png' })
+usePopchiveSeo({ ...PAGE_SEO["/"], image: "/logo.png" });
 useHead({
-  script: [{
-    key: 'website-schema',
-    type: 'application/ld+json',
-    textContent: JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebSite',
-      name: SITE_NAME,
-      alternateName: SITE_ALTERNATE_NAME,
-      url: canonicalUrl('/'),
-    }),
-  }],
-})
+  script: [
+    {
+      key: "website-schema",
+      type: "application/ld+json",
+      textContent: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: SITE_NAME,
+        alternateName: SITE_ALTERNATE_NAME,
+        url: canonicalUrl("/"),
+      }),
+    },
+  ],
+});
 
-const showHomeFavorites = webFeatures.favorites
+const showHomeFavorites = webFeatures.favorites;
 
-const { result: bannersRequest, onImageError: onBannerImageError } = useHomePopups('main-banners')
-const { result: newRequest, onImageError: onNewImageError } = useHomePopups('new-popups')
-const { result: hotRequest, onImageError: onHotImageError } = useHomePopups('now-hot')
-const { result: japanRequest, onImageError: onJapanImageError } = useHomePopups('japan-new-popups', 'JP')
+const { result: bannersRequest, onImageError: onBannerImageError } =
+  useHomePopups("main-banners");
+const { result: newRequest, onImageError: onNewImageError } =
+  useHomePopups("new-popups");
+const { result: hotRequest, onImageError: onHotImageError } =
+  useHomePopups("now-hot");
+const { result: japanRequest, onImageError: onJapanImageError } = useHomePopups(
+  "japan-new-popups",
+  "JP",
+);
 
 // Start all four during setup, then await together. SSR results, including empty
 // lists, travel in the Nuxt payload and are reused rather than fetched on mount.
-const [banners, newPopups, hotPopups, japanPopups] = await Promise.all([bannersRequest, newRequest, hotRequest, japanRequest])
-const posters = computed(() => banners.data.value?.items ?? [])
-const newPopupItems = computed(() => newPopups.data.value?.items ?? [])
-const hotRankingItems = computed(() => hotPopups.data.value?.items ?? [])
-const japanPopupItems = computed(() => japanPopups.data.value?.items ?? [])
+const [banners, newPopups, hotPopups, japanPopups] = await Promise.all([
+  bannersRequest,
+  newRequest,
+  hotRequest,
+  japanRequest,
+]);
+const posters = computed(() => banners.data.value?.items ?? []);
+const newPopupItems = computed(() => newPopups.data.value?.items ?? []);
+const hotRankingItems = computed(() => hotPopups.data.value?.items ?? []);
+const japanPopupItems = computed(() => japanPopups.data.value?.items ?? []);
 </script>
 
 <template>
@@ -45,9 +63,17 @@ const japanPopupItems = computed(() => japanPopups.data.value?.items ?? [])
     <h1 class="sr-only">더플레이브 (THE PLAVE) — 한국·일본 팝업스토어 정보</h1>
     <div class="home-main-section">
       <HomeQuickSearch class="home-desktop-search" />
-      <p v-if="banners.error.value" class="home-banner-state" role="alert">메인 팝업을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
-      <HomeFeaturedGrid v-else-if="posters.length" :posters="posters" @image-error="onBannerImageError" />
-      <p v-else class="home-banner-state" role="status">현재 등록된 메인 팝업이 없습니다.</p>
+      <p v-if="banners.error.value" class="home-banner-state" role="alert">
+        메인 팝업을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+      </p>
+      <HomeFeaturedGrid
+        v-else-if="posters.length"
+        :posters="posters"
+        @image-error="onBannerImageError"
+      />
+      <p v-else class="home-banner-state" role="status">
+        현재 등록된 메인 팝업이 없습니다.
+      </p>
     </div>
     <div class="home-categories-container">
       <!-- <HomeCategoryShortcuts /> -->
@@ -70,7 +96,9 @@ const japanPopupItems = computed(() => japanPopups.data.value?.items ?? [])
     <HomeJapanNewPopups
       :show-favorite="showHomeFavorites"
       :items="japanPopupItems"
-      :loading="japanPopups.status.value === 'pending' && !japanPopups.data.value"
+      :loading="
+        japanPopups.status.value === 'pending' && !japanPopups.data.value
+      "
       :error="!!japanPopups.error.value"
       @image-error="onJapanImageError"
     />
@@ -95,34 +123,41 @@ const japanPopupItems = computed(() => japanPopups.data.value?.items ?? [])
     height: 400px;
     justify-content: space-between;
   }
-  .home-main-section :deep(.home-featured-grid) { flex-shrink: 0; }
+  .home-main-section :deep(.home-featured-grid) {
+    flex-shrink: 0;
+  }
 }
 /* Keep card rounding local to the home page, including reused components. */
-.home-page :deep(:is(
-  .home-featured-grid__card,
-  .home-featured-grid__image,
-  .new-popups__card,
-  .new-popups__image,
-  .hot-ranking__card,
-  .hot-ranking__poster,
-  .japan-new-popups__card,
-  .japan-new-popups__poster
-)) {
+.home-page
+  :deep(
+    :is(
+      .home-featured-grid__card,
+      .home-featured-grid__image,
+      .new-popups__card,
+      .new-popups__image,
+      .hot-ranking__card,
+      .hot-ranking__poster,
+      .japan-new-popups__card,
+      .japan-new-popups__poster
+    )
+  ) {
   border-radius: 5px;
 }
-.home-page :deep(:is(
-  .new-popups__image,
-  .hot-ranking__poster,
-  .japan-new-popups__poster
-) img) {
+.home-page
+  :deep(
+    :is(.new-popups__image, .hot-ranking__poster, .japan-new-popups__poster) img
+  ) {
   border-radius: 5px;
 }
-.home-page :deep(:is(
-  .home-featured-grid__card,
-  .new-popups__image,
-  .hot-ranking__poster,
-  .japan-new-popups__poster
-)) {
+.home-page
+  :deep(
+    :is(
+      .home-featured-grid__card,
+      .new-popups__image,
+      .hot-ranking__poster,
+      .japan-new-popups__poster
+    )
+  ) {
   overflow: hidden;
 }
 .home-categories-container {

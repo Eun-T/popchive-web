@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
 .app-header__logo {
   display: block;
   width: auto;
-  height: 30px;
+  height: 12px;
   max-width: 100%;
   object-fit: contain;
 }
@@ -203,7 +203,7 @@ onBeforeUnmount(() => {
 .app-header__link[href]:hover { color: var(--ds-text); }
 .app-header__link--current,
 .app-header__link--current[href]:hover {
-  color: var(--ds-accent-purple);
+  color: #111111;
   font-weight: 600;
 }
 .app-header__actions {
@@ -290,7 +290,7 @@ onBeforeUnmount(() => {
   color: var(--ds-secondary);
 }
 .app-header__drawer-link:hover { background: var(--ds-tag); }
-.app-header__drawer-link.is-active { color: var(--ds-accent-purple); font-weight: 600; }
+.app-header__drawer-link.is-active { color: #111111; font-weight: 600; }
 
 /* Temporary narrow-screen fallback, not a finalized mobile navigation. */
 @media (width < 900px) {
