@@ -6,7 +6,7 @@ import { Heart } from '@lucide/vue'
 import { webFeatures } from '~/config/features'
 import type { HomePopupCard } from '../../../shared/types/home'
 
-withDefaults(defineProps<{ items: readonly HomePopupCard[]; loading?: boolean; error?: boolean; showFavorite?: boolean }>(), { showFavorite: true })
+withDefaults(defineProps<{ items: readonly HomePopupCard[]; loading?: boolean; error?: boolean; showFavorite?: boolean; heading?: string }>(), { showFavorite: true, heading: '새로 올라온 팝업' })
 const emit = defineEmits<{ 'image-error': [] }>()
 const failedSources = ref(new Set<string>())
 function onImageError(src: string | null) {
@@ -42,7 +42,7 @@ function onWheel(event: WheelEvent) {
 <template>
   <section class="new-popups" aria-labelledby="new-popups-title">
     <div class="new-popups__header">
-      <h2 id="new-popups-title">새로 올라온 팝업</h2>
+      <h2 id="new-popups-title">{{ heading }}</h2>
     </div>
     <p v-if="error" class="new-popups__state" role="alert">새로 올라온 팝업을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
     <p v-else-if="loading" class="new-popups__state" role="status">팝업을 불러오는 중입니다.</p>
@@ -70,6 +70,7 @@ function onWheel(event: WheelEvent) {
           </div>
           <h3 class="new-popups__title"><NuxtLink :to="`/places/${encodeURIComponent(item.publicId)}`" draggable="false">{{ item.title }}</NuxtLink></h3>
           <p class="new-popups__period">{{ formatPopupCardPeriod(item.period) }}</p>
+          <slot name="card-action" :item="item" />
         </li>
       </ul>
     </div>

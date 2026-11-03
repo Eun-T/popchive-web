@@ -15,7 +15,12 @@ export default defineNuxtConfig({
     apiBase: 'https://api.theplave.co.kr',
     naverClientId: '', // NUXT_NAVER_CLIENT_ID — server only
     naverClientSecret: '', // NUXT_NAVER_CLIENT_SECRET — server only
+    appleWebRedirectUri: '', // NUXT_APPLE_WEB_REDIRECT_URI — fixed HTTPS Return URL
+    appleAuthRedisUrl: '', // NUXT_APPLE_AUTH_REDIS_URL — Redis REST endpoint (server only)
+    appleAuthRedisToken: '', // NUXT_APPLE_AUTH_REDIS_TOKEN — server only
     public: {
+      appleClientId: '', // NUXT_PUBLIC_APPLE_CLIENT_ID — Apple Services ID
+      googleClientId: '', // NUXT_PUBLIC_GOOGLE_CLIENT_ID — OAuth Web application client ID
       ga4MeasurementId: '', // NUXT_PUBLIC_GA4_MEASUREMENT_ID
       ga4Enabled: false, // NUXT_PUBLIC_GA4_ENABLED; enable only after the documented prerequisites
       googleMapsApiKey: '', // NUXT_PUBLIC_GOOGLE_MAPS_API_KEY (browser key)

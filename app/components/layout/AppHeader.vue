@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Menu, Search, X } from '@lucide/vue'
+import { LogOut, Menu, Search, UserRound, X } from '@lucide/vue'
 import { webFeatures } from '~/config/features'
+import HeaderUserMenu from './HeaderUserMenu.vue'
 
 // Set a destination only when the corresponding real page is implemented.
 const items: { label: string; to: string | null; visible?: boolean }[] = [
@@ -11,6 +12,7 @@ const items: { label: string; to: string | null; visible?: boolean }[] = [
 ]
 const visibleItems = items.filter(item => item.visible !== false)
 const route = useRoute()
+const auth = useAuth()
 function isActive(to: string) {
   return route.path === to || (to === '/places' && route.path.startsWith('/places/'))
 }
@@ -67,6 +69,10 @@ function onViewportChange() {
   if (mobileQuery?.matches) return
   finishDrawerClose()
 }
+async function logoutFromDrawer() {
+  if (auth.pending.value) return
+  if (await auth.logout()) closeDrawer()
+}
 watch(() => route.fullPath, () => {
   closeDrawer()
 })
@@ -118,17 +124,17 @@ onBeforeUnmount(() => {
         </ul>
       </nav>
 
-      <div class="app-header__actions" role="group" aria-label="검색 및 계정">
+      <div class="app-header__actions" :class="{ 'app-header__actions--authenticated': auth.user.value }" role="group" aria-label="검색 및 계정">
         <NuxtLink to="/search" aria-label="검색" class="app-header__search ds-control text-secondary">
           <Search :size="20" aria-hidden="true" />
         </NuxtLink>
-        <button type="button" disabled title="로그인 기능 준비 중" class="app-header__login app-header__placeholder type-label text-secondary">로그인</button>
-        <button type="button" disabled title="회원가입 기능 준비 중" class="app-header__signup app-header__placeholder type-label border border-border bg-background text-foreground">회원가입</button>
+        <HeaderUserMenu v-if="auth.user.value" />
+        <div v-else class="app-header__account-links">
+          <NuxtLink to="/login" class="app-header__login type-label text-secondary">로그인</NuxtLink>
+          <NuxtLink to="/signup" class="app-header__signup type-label border border-border bg-background text-foreground">회원가입</NuxtLink>
+        </div>
       </div>
       <div class="app-header__mobile-actions">
-        <NuxtLink to="/search" class="app-header__mobile-button ds-control" aria-label="검색">
-          <Search :size="20" aria-hidden="true" />
-        </NuxtLink>
         <button type="button" class="app-header__mobile-button ds-control" aria-label="메뉴 열기" aria-haspopup="dialog" :aria-expanded="drawerOpen" :aria-controls="drawerId" @click="openDrawer">
           <Menu :size="24" aria-hidden="true" />
         </button>
@@ -141,12 +147,26 @@ onBeforeUnmount(() => {
       </div>
       <nav aria-label="모바일 주요 메뉴">
         <NuxtLink v-for="item in mobileItems" :key="item.to!" :to="item.to!" class="app-header__drawer-link ds-control" :class="{ 'is-active': isActive(item.to!) }" :aria-current="isActive(item.to!) ? 'page' : undefined" @click="closeDrawer">{{ item.label }}</NuxtLink>
+        <NuxtLink to="/search" class="app-header__drawer-link ds-control" :class="{ 'is-active': isActive('/search') }" :aria-current="isActive('/search') ? 'page' : undefined" @click="finishDrawerClose">검색</NuxtLink>
       </nav>
+      <div class="app-header__drawer-account">
+        <template v-if="auth.user.value">
+          <NuxtLink to="/mypage" class="app-header__drawer-link app-header__drawer-user ds-control" @click="closeDrawer"><UserRound :size="20" aria-hidden="true" /><span>{{ auth.user.value.nickname }}님</span></NuxtLink>
+          <button type="button" class="app-header__drawer-link app-header__drawer-logout ds-control" :disabled="auth.pending.value" @click="logoutFromDrawer"><LogOut :size="20" aria-hidden="true" />로그아웃</button>
+        </template>
+        <template v-else>
+          <NuxtLink to="/login" class="app-header__drawer-link ds-control" @click="closeDrawer">로그인</NuxtLink>
+          <NuxtLink to="/signup" class="app-header__drawer-link ds-control" @click="closeDrawer">회원가입</NuxtLink>
+        </template>
+        <p v-if="auth.error.value" role="alert" class="app-header__drawer-error">{{ auth.error.value }}</p>
+      </div>
     </dialog>
+    <p v-if="auth.error.value" role="alert" class="app-header__auth-error">{{ auth.error.value }} <button type="button" :disabled="auth.pending.value" @click="auth.restore()">다시 확인</button></p>
   </header>
 </template>
 
 <style scoped>
+.app-header__auth-error { position: absolute; right: 20px; top: 64px; max-width: min(440px, 90vw); padding: 12px; border: 1px solid var(--ds-border); border-radius: 12px; background: var(--ds-background); font-size: 14px; }
 .app-header {
   position: sticky;
   top: 0;
@@ -210,25 +230,38 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-self: end;
-  gap: 18px;
+  gap: 16px;
   white-space: nowrap;
 }
+.app-header__actions--authenticated { gap: 16px; }
+.app-header__account-links { display: flex; align-items: center; gap: 12px; }
+.app-header__actions--authenticated .app-header__search { color: #6b7280; }
 .app-header__search {
   display: inline-flex;
   width: 40px;
   height: 40px;
+  padding: 0;
   align-items: center;
   justify-content: center;
   background: none;
   border: 0;
 }
 .app-header__login {
+  display: inline-flex;
+  align-items: center;
   min-height: 40px;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  color: #171717;
   background: none;
   border: 0;
 }
 .app-header__signup {
+  display: inline-flex;
+  align-items: center;
   height: 36px;
+  border-color: #e5e7eb;
   border-radius: 6px;
   padding-inline: 14px;
 }
@@ -291,6 +324,16 @@ onBeforeUnmount(() => {
 }
 .app-header__drawer-link:hover { background: var(--ds-tag); }
 .app-header__drawer-link.is-active { color: #111111; font-weight: 600; }
+.app-header__drawer-account { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+.app-header__drawer-user, .app-header__drawer-logout { gap: 12px; }
+.app-header__drawer-user span { min-width: 0; overflow-wrap: anywhere; }
+.app-header__drawer-user svg, .app-header__drawer-logout svg { flex-shrink: 0; }
+.app-header__drawer-user:hover { background: transparent; }
+.app-header__drawer-logout { width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.app-header__drawer-logout:disabled { color: #9ca3af; cursor: wait; }
+.app-header__drawer-account .app-header__drawer-link:hover:not(.app-header__drawer-user):not(:disabled) { background: #f3f4f6; }
+.app-header__drawer-link:focus-visible { outline: 2px solid #6b7280; outline-offset: -2px; }
+.app-header__drawer-error { padding: 12px 16px; color: #525252; font-size: 14px; overflow-wrap: anywhere; }
 
 /* Temporary narrow-screen fallback, not a finalized mobile navigation. */
 @media (width < 900px) {
@@ -304,7 +347,7 @@ onBeforeUnmount(() => {
 }
 @media (width < 768px) {
   .app-header { height: auto; min-height: 64px; }
-  .app-header__logo { height: 32px; }
+  .app-header__logo { height: 12px; }
   .app-header__container { height: 64px; grid-template-columns: minmax(0, 1fr) auto; }
   .app-header__nav { display: none; }
   .app-header__mobile-actions { display: flex; align-items: center; justify-self: end; gap: 4px; }

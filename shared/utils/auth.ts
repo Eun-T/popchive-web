@@ -1,0 +1,5 @@
+export const normalizeEmail = (value: string) => value.trim().toLowerCase()
+export const validEmail = (value: string) => value.length <= 255 && /^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$/i.test(value)
+export const validPassword = (value: string) => /^[!-~]{8,72}$/.test(value) && /[a-z]/i.test(value) && /[0-9]/.test(value)
+export const normalizeNickname = (value: string) => value.trim().normalize('NFC')
+export const validNickname = (value: string) => Array.from(value).length >= 2 && Array.from(value).length <= 10 && /^[\p{L}\p{Nd}\p{Mn}_]+$/u.test(value)
