@@ -8,6 +8,7 @@ const items: { label: string; to: string | null; visible?: boolean }[] = [
   { label: '홈', to: '/' },
   { label: '플레이스', to: '/places' },
   { label: '지도', to: '/map' },
+  { label: '캘린더', to: '/calendar' },
   { label: '커뮤니티', to: null, visible: webFeatures.communityNavigation }
 ]
 const visibleItems = items.filter(item => item.visible !== false)

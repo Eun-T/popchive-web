@@ -24,7 +24,8 @@ export default defineEventHandler(async (event): Promise<PopupMapResponse | Seou
   }
   const { minLat, maxLat, minLng, maxLng } = bounds as Record<'minLat' | 'maxLat' | 'minLng' | 'maxLng', number>
   if (minLat < -90 || maxLat > 90 || minLng < -180 || maxLng > 180 || minLat > maxLat || minLng > maxLng
-    || (query.languageCode !== undefined && query.languageCode !== 'ko')) {
+    || (query.languageCode !== undefined && query.languageCode !== 'ko')
+    || (query.countryCode !== undefined && query.countryCode !== 'KR')) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid map bounds or language' })
   }
 
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event): Promise<PopupMapResponse | Seou
     // Fixed public endpoint only. Do not forward incoming cookies, auth, origin or arbitrary parameters.
     response = await $fetch<unknown>('/api/popups/map', {
       baseURL: useRuntimeConfig(event).apiBase,
-      query: { minLat, maxLat, minLng, maxLng, languageCode: 'ko' },
+      query: { minLat, maxLat, minLng, maxLng, languageCode: 'ko', countryCode: 'KR' },
       method: 'GET',
       headers: { accept: 'application/json' },
       credentials: 'omit',

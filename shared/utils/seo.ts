@@ -5,8 +5,8 @@ export const SITE_NAME = '더플레이브'
 export const SITE_ALTERNATE_NAME = 'THE PLAVE'
 export const PAGE_SEO = {
   '/': {
-    title: '더플레이브 (THE PLAVE) | 한국·일본 팝업스토어 정보',
-    description: '한국과 일본의 팝업스토어를 더플레이브에서 만나보세요. 지역별 팝업 정보와 운영 기간, 위치, 방문 정보를 확인할 수 있습니다.',
+    title: '더플레이브 (THE PLAVE) | 전국 팝업스토어 정보',
+    description: '전국의 다양한 팝업스토어를 더플레이브에서 만나보세요. 지역별 팝업 일정과 운영시간, 위치, 방문 정보를 한눈에 확인할 수 있습니다.',
   },
   '/places': {
     title: '팝업스토어 찾기 | 더플레이브',

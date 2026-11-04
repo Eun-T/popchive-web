@@ -77,7 +77,7 @@ function schedule() {
   open.value = true;
   const q = query.value,
     languageCode = quickSearchLanguage(q),
-    cacheKey = `${languageCode}:${q}`;
+    cacheKey = `KR:${languageCode}:${q}`;
   const cached = cache.get(cacheKey);
   if (cached) {
     results.value = cached;
@@ -95,7 +95,7 @@ function schedule() {
         const response = await $fetch<QuickSearchResponse>(
           "/api/popups/search",
           {
-            query: { q, languageCode },
+            query: { q, countryCode: 'KR', languageCode },
             signal: request.signal,
             timeout: 12_000,
             retry: 0,

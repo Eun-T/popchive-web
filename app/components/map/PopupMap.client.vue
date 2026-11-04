@@ -54,7 +54,8 @@ let disposed = false;
 let debounce: ReturnType<typeof setTimeout> | undefined;
 let request: AbortController | undefined;
 let requestVersion = 0;
-const popupCache = new MapPopupCache();
+const mapCountryCode = 'KR' as const;
+const popupCache = new MapPopupCache(mapCountryCode);
 let activeBounds: BoundsQuery[] | undefined;
 let activeDay = "";
 const listeners: MapsListener[] = [];
@@ -302,7 +303,7 @@ async function fetchPopups() {
     const responses = await Promise.all(
       queries.map((bounds) =>
         $fetch<PopupMapResponse>("/api/popups/map", {
-          query: { ...bounds, languageCode: "ko" },
+          query: { ...bounds, languageCode: "ko", countryCode: mapCountryCode },
           signal: controller.signal,
           timeout: 15_000,
           retry: 0,

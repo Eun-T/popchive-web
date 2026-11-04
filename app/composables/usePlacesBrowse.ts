@@ -5,9 +5,9 @@ import type { PlaceDatePeriod } from '#shared/utils/placeDatePeriod'
 
 export type PlaceFilterKey = 'countryCode' | 'region' | 'category' | 'status'
 export type PlaceFilters = Record<PlaceFilterKey, string[]>
-export function emptyPlaceFilters(): PlaceFilters { return { countryCode: [], region: [], category: [], status: [] } }
+export function emptyPlaceFilters(): PlaceFilters { return { countryCode: ['KR'], region: [], category: [], status: [] } }
 export function copyPlaceFilters(filters: PlaceFilters): PlaceFilters {
-  return { countryCode: [...filters.countryCode], region: [...filters.region], category: [...filters.category], status: [...filters.status] }
+  return { countryCode: ['KR'], region: [...filters.region], category: [...filters.category], status: [...filters.status] }
 }
 
 export function usePlacesBrowse(initialCategory?: number) {
@@ -72,7 +72,8 @@ export function usePlacesBrowse(initialCategory?: number) {
   const filtersQuery = computed<PlaceListQuery>(() => ({
     limit: PLACE_PAGE_SIZE,
     sort: sort.value,
-    ...(appliedFilters.value.countryCode[0] ? { countryCode: appliedFilters.value.countryCode[0] as 'KR' | 'JP' } : {}),
+    // The All list stays Korean regardless of draft, restored state, or URL country.
+    countryCode: 'KR',
     ...(appliedFilters.value.region.length ? { regionIds: [...appliedFilters.value.region].sort((a, b) => Number(a) - Number(b)).join(',') } : {}),
     ...(appliedFilters.value.category.length ? { tagIds: [...appliedFilters.value.category].sort((a, b) => Number(a) - Number(b)).join(',') } : {}),
     ...(appliedFilters.value.status[0] ? { status: appliedFilters.value.status[0] as PlaceStatus } : {}),
@@ -95,22 +96,20 @@ export function usePlacesBrowse(initialCategory?: number) {
   // Nuxt may carry previous data while a reactive key changes. Exclude it explicitly.
   const firstPage = computed(() => pageRequest.data.value?.requestKey === requestKey.value ? pageRequest.data.value : undefined)
   const filterGroups = computed(() => [
-    { key: 'countryCode' as const, label: '국가', multiple: false, options: [{ value: 'KR', label: '한국' }, { value: 'JP', label: '일본' }] },
     { key: 'region' as const, label: '지역', multiple: true, options: (optionsRequest.data.value?.regions ?? [])
-      .filter(region => !draftFilters.value.countryCode.length || draftFilters.value.countryCode.includes(region.countryCode))
+      .filter(region => region.countryCode === 'KR')
       .map(region => ({ value: String(region.id), label: region.name })) },
     { key: 'category' as const, label: '카테고리', multiple: true, options: (optionsRequest.data.value?.tags ?? []).map(tag => ({ value: String(tag.id), label: tag.name })) },
     { key: 'status' as const, label: '진행 상태', multiple: false, options: [
       { value: 'ONGOING', label: '진행 중' }, { value: 'UPCOMING', label: '오픈 예정' }, { value: 'ENDED', label: '종료' },
     ] },
   ])
-  // Chips use all metadata, independently of the country currently being drafted.
+  // The fixed country is not a removable filter or part of the filter count.
   const activeChips = computed(() => {
     const groups = [
-      { key: 'countryCode' as const, options: [{ value: 'KR', label: '한국' }, { value: 'JP', label: '일본' }] },
-      { key: 'region' as const, options: (optionsRequest.data.value?.regions ?? []).map(row => ({ value: String(row.id), label: row.name })) },
+      filterGroups.value[0]!,
       { key: 'category' as const, options: (optionsRequest.data.value?.tags ?? []).map(row => ({ value: String(row.id), label: row.name })) },
-      filterGroups.value[3]!,
+      filterGroups.value[2]!,
     ]
     return groups.flatMap(group => group.options.filter(option => appliedFilters.value[group.key].includes(option.value))
       .map(option => ({ group: group.key, ...option })))
@@ -160,17 +159,16 @@ export function usePlacesBrowse(initialCategory?: number) {
     }
   }
   function toggleDraft(key: PlaceFilterKey, value: string) {
-    const group = filterGroups.value.find(item => item.key === key)!
+    const group = filterGroups.value.find(item => item.key === key)
+    if (!group || !group.options.some(option => option.value === value)) return
     const current = draftFilters.value[key]
     draftFilters.value[key] = current.includes(value) ? current.filter(item => item !== value) : group.multiple ? [...current, value] : [value]
-    if (key === 'countryCode') draftFilters.value.region = draftFilters.value.region.filter(id =>
-      optionsRequest.data.value?.regions.some(region => String(region.id) === id
-        && (!draftFilters.value.countryCode.length || draftFilters.value.countryCode.includes(region.countryCode))))
   }
   function removeFilter(group: PlaceFilterKey, value: string) {
     appliedFilters.value = { ...copyPlaceFilters(appliedFilters.value), [group]: appliedFilters.value[group].filter(item => item !== value) }
   }
   function selectRegion(countryCode: 'KR' | 'JP', regionId: number) {
+    if (countryCode !== 'KR') return false
     if (!optionsRequest.data.value?.regions.some(region => region.id === regionId && region.countryCode === countryCode)) return false
     // A region shortcut starts a fresh country+region query, without incompatible previous filters.
     appliedFilters.value = { ...emptyPlaceFilters(), countryCode: [countryCode], region: [String(regionId)] }

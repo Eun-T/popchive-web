@@ -72,6 +72,8 @@ export type MapCacheEntry = {
 export class MapPopupCache {
   private entries = new Map<string, MapCacheEntry>()
 
+  constructor(private readonly countryCode: 'KR' | 'JP' = 'KR') {}
+
   get size() { return this.entries.size }
   clear() { this.entries.clear() }
 
@@ -95,7 +97,7 @@ export class MapPopupCache {
 
   store(bounds: BoundsQuery[], popups: MapPopup[], now = Date.now()) {
     this.prune(now)
-    const key = JSON.stringify(bounds)
+    const key = JSON.stringify({ countryCode: this.countryCode, bounds })
     this.entries.delete(key)
     this.entries.set(key, {
       bounds, popups: [...new Map(popups.map(popup => [popup.id, popup])).values()],

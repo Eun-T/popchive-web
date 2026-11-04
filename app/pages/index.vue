@@ -4,7 +4,6 @@ import HomeFeaturedGrid from "~/components/home/HomeFeaturedGrid.vue";
 import HomeCategoryShortcuts from "~/components/home/HomeCategoryShortcuts.vue";
 import HomeNewPopups from "~/components/home/HomeNewPopups.vue";
 import HomeHotRanking from "~/components/home/HomeHotRanking.vue";
-import HomeJapanNewPopups from "~/components/home/HomeJapanNewPopups.vue";
 import HomeSeoulMap from "~/components/home/HomeSeoulMap.vue";
 import {
   canonicalUrl,
@@ -39,28 +38,22 @@ const { result: newRequest, onImageError: onNewImageError } =
   useHomePopups("new-popups");
 const { result: hotRequest, onImageError: onHotImageError } =
   useHomePopups("now-hot");
-const { result: japanRequest, onImageError: onJapanImageError } = useHomePopups(
-  "japan-new-popups",
-  "JP",
-);
-
-// Start all four during setup, then await together. SSR results, including empty
+// Japan new popups are temporarily disabled; keep their component for restoration.
+// Start the three active sections during setup, then await together. SSR results, including empty
 // lists, travel in the Nuxt payload and are reused rather than fetched on mount.
-const [banners, newPopups, hotPopups, japanPopups] = await Promise.all([
+const [banners, newPopups, hotPopups] = await Promise.all([
   bannersRequest,
   newRequest,
   hotRequest,
-  japanRequest,
 ]);
 const posters = computed(() => banners.data.value?.items ?? []);
 const newPopupItems = computed(() => newPopups.data.value?.items ?? []);
 const hotRankingItems = computed(() => hotPopups.data.value?.items ?? []);
-const japanPopupItems = computed(() => japanPopups.data.value?.items ?? []);
 </script>
 
 <template>
   <div class="home-page">
-    <h1 class="sr-only">더플레이브 (THE PLAVE) — 한국·일본 팝업스토어 정보</h1>
+    <h1 class="sr-only">더플레이브 (THE PLAVE) — 전국 팝업스토어 정보</h1>
     <div class="home-main-section">
       <HomeQuickSearch class="home-desktop-search" />
       <p v-if="banners.error.value" class="home-banner-state" role="alert">
@@ -93,15 +86,6 @@ const japanPopupItems = computed(() => japanPopups.data.value?.items ?? []);
       @image-error="onHotImageError"
     />
     <HomeSeoulMap />
-    <HomeJapanNewPopups
-      :show-favorite="showHomeFavorites"
-      :items="japanPopupItems"
-      :loading="
-        japanPopups.status.value === 'pending' && !japanPopups.data.value
-      "
-      :error="!!japanPopups.error.value"
-      @image-error="onJapanImageError"
-    />
   </div>
 </template>
 
