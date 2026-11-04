@@ -107,12 +107,12 @@ const visibleImages = computed(() => {
 const hiddenImageCount = computed(() =>
   Math.max(0, (popup.value?.contentImageUrls.length ?? 0) - 2),
 );
-const selectedTab = ref<"info" | "reviews">("info");
+const selectedTab = ref<"blog" | "reviews">("blog");
 const noticeOpen = ref(false);
 const benefitsOpen = ref(false);
 const tabs = [
-  { id: "info", label: "팝업 정보" },
-  { id: "reviews", label: "방문 리뷰" },
+  { id: "blog", label: "블로그 리뷰" },
+  { id: "reviews", label: "후기" },
 ] as const;
 function onTabKeydown(event: KeyboardEvent, index: number) {
   if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -324,31 +324,7 @@ usePopchiveSeo({
           </div>
         </div>
       </div>
-      <div class="detail-tabs" role="tablist" aria-label="팝업 상세 콘텐츠">
-        <button
-          v-for="(tab, index) in tabs"
-          :id="`detail-tab-${tab.id}`"
-          :key="tab.id"
-          type="button"
-          role="tab"
-          :aria-selected="selectedTab === tab.id"
-          :aria-controls="`detail-panel-${tab.id}`"
-          :tabindex="selectedTab === tab.id ? 0 : -1"
-          :class="{ 'is-selected': selectedTab === tab.id }"
-          @click="selectedTab = tab.id"
-          @keydown="onTabKeydown($event, index)"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-      <div
-        v-show="selectedTab === 'info'"
-        id="detail-panel-info"
-        role="tabpanel"
-        aria-labelledby="detail-tab-info"
-        tabindex="0"
-        class="detail-panel"
-      >
+      <div id="detail-panel-info" class="detail-panel detail-info-content">
         <section
           v-if="popup.notice?.trim()"
           class="detail-accordion"
@@ -450,6 +426,33 @@ usePopchiveSeo({
           </button>
         </div>
       </div>
+      <div class="detail-tabs" role="tablist" aria-label="팝업 리뷰">
+        <button
+          v-for="(tab, index) in tabs"
+          :id="`detail-tab-${tab.id}`"
+          :key="tab.id"
+          type="button"
+          role="tab"
+          :aria-selected="selectedTab === tab.id"
+          :aria-controls="`detail-panel-${tab.id}`"
+          :tabindex="selectedTab === tab.id ? 0 : -1"
+          :class="{ 'is-selected': selectedTab === tab.id }"
+          @click="selectedTab = tab.id"
+          @keydown="onTabKeydown($event, index)"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+      <div
+        v-show="selectedTab === 'blog'"
+        id="detail-panel-blog"
+        role="tabpanel"
+        aria-labelledby="detail-tab-blog"
+        tabindex="0"
+        class="detail-panel"
+      >
+        <PopupBlogReviews :key="`${id}:blog-reviews`" :public-id="id" />
+      </div>
       <section
         v-show="selectedTab === 'reviews'"
         id="detail-panel-reviews"
@@ -458,10 +461,8 @@ usePopchiveSeo({
         tabindex="0"
         class="detail-panel"
       >
-        <h2>방문 리뷰</h2>
         <p class="detail-state">아직 등록된 방문 리뷰가 없어요.</p>
       </section>
-      <PopupBlogReviews :key="`${id}:blog-reviews`" :public-id="id" />
       <PopupRecommendations
         :key="`${id}:nearby`"
         :public-id="id"
@@ -507,21 +508,6 @@ usePopchiveSeo({
   max-width: 826px;
   min-width: 0;
   color: #171717;
-}
-/* Match PopupRecommendations' divider; only exists when reviews render.
-   The observer wrapper remains mounted for lazy loading, even without results. */
-.popup-detail :deep(.blog-reviews) {
-  display: flow-root;
-
-  margin-top: 0;
-}
-.popup-detail :deep(.blog-reviews::before) {
-  content: "";
-  display: block;
-  width: 100%;
-  margin: 32px 0;
-  border: 0;
-  border-top: 1px solid #e5e7eb;
 }
 .detail-top {
   display: grid;
@@ -718,6 +704,11 @@ usePopchiveSeo({
 }
 .detail-panel {
   padding-top: 24px;
+}
+.detail-info-content {
+  margin-top: 32px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 32px;
 }
 .detail-panel > section + section,
 .detail-images {

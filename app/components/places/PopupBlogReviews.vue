@@ -7,7 +7,6 @@ const pendingBlogReviews = new Map<string, Promise<import('../../../shared/types
 import type { BlogReviewsResponse } from '../../../shared/types/blogReviews'
 
 const props = defineProps<{ publicId: string }>()
-const headingId = `blog-reviews-${useId()}`
 const cache = useState<Record<string, BlogReviewsResponse>>('blog-review-results', () => ({}))
 const wrapper = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | undefined
@@ -64,11 +63,7 @@ const failedImages = ref(new Set<string>())
 
 <template>
   <div ref="wrapper" class="blog-reviews-observer">
-  <section v-if="items.length" class="blog-reviews" :aria-labelledby="headingId">
-    <header class="blog-reviews__header">
-      <h2 :id="headingId">블로그 후기</h2>
-      <!-- <p>네이버 블로그 검색 결과입니다. 실제 방문 여부는 확인되지 않았습니다.</p> -->
-    </header>
+  <section v-if="items.length" class="blog-reviews" aria-label="블로그 리뷰">
     <ul class="blog-reviews__list">
       <li v-for="item in items" :key="item.url">
         <a :href="item.url" target="_blank" rel="noopener noreferrer" class="blog-reviews__link">
@@ -92,15 +87,17 @@ const failedImages = ref(new Set<string>())
       </li>
     </ul>
   </section>
+  <p v-else class="blog-reviews__state" role="status">
+    {{ cache[props.publicId] ? '아직 등록된 블로그 리뷰가 없어요.' : '블로그 리뷰를 불러오는 중입니다.' }}
+  </p>
   </div>
 </template>
 
 <style scoped>
 .blog-reviews-observer { display: flow-root; min-width: 0; min-height: 1px; }
-.blog-reviews { min-width: 0; margin-top: var(--ds-space-40); color: var(--ds-text); }
-.blog-reviews__header h2 { font-size: 20px; line-height: 28px; font-weight: 700; }
-.blog-reviews__header p { margin-top: 8px; color: var(--ds-secondary); font-size: 12px; line-height: 18px; }
-.blog-reviews__list { display: grid; gap: var(--ds-space-10); margin-top: var(--ds-space-20); }
+.blog-reviews { min-width: 0; color: var(--ds-text); }
+.blog-reviews__state { display: grid; place-content: center; min-height: 180px; padding: 24px; text-align: center; color: var(--ds-secondary); font-size: 14px; }
+.blog-reviews__list { display: grid; gap: var(--ds-space-10); }
 .blog-reviews__list li { min-width: 0; }
 .blog-reviews__link { display: flex; align-items: center; gap: var(--ds-space-12); min-width: 0; padding: var(--ds-space-12) var(--ds-space-16); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-8); background: var(--ds-background); }
 .blog-reviews__text { flex: 1; min-width: 0; }
