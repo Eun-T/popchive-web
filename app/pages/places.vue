@@ -17,10 +17,11 @@ import { webFeatures } from '~/config/features';
 import { popupCalendarDate, popupDayStatus } from '~/utils/popupDates';
 import { emptyDatePeriod, isValidDateRange, localDateValue, presetDatePeriod } from '#shared/utils/placeDatePeriod';
 import { endingSoonToday } from '#shared/utils/endingSoon';
+import { placesPageNumber } from '#shared/utils/placesPagination';
+import { hasPlacesSeoFilters } from '#shared/utils/placesSeo';
 
-usePopchiveSeo(PAGE_SEO['/places']);
-
-definePageMeta({ layout: "default" });
+// Each committed query owns one browse instance and its SSR/initial list request.
+definePageMeta({ layout: "default", key: route => route.path + JSON.stringify(route.query) });
 
 // Temporarily disable these shortcuts, including component setup and section spacing.
 // /api/places/options remains necessary for the All tab's region/category filters.
@@ -33,7 +34,11 @@ const tabs = [
 ] as const;
 const route = useRoute();
 const router = useRouter();
-const selectedTab = ref<"explore" | "all">(route.query.tab === 'explore' ? 'explore' : 'all');
+if (placesPageNumber(route.query.page) === null) {
+  useRequestEvent()?.node.res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  throw createError({ statusCode: 400, statusMessage: 'Invalid popup page' });
+}
+const selectedTab = ref<"explore" | "all">(route.query.page === undefined && route.query.tab === 'explore' ? 'explore' : 'all');
 function categoryFromRoute() {
   const value = route.query.tagId;
   return route.query.tab === 'all' && typeof value === 'string'
@@ -42,7 +47,7 @@ function categoryFromRoute() {
 function selectTab(tab: 'explore' | 'all') {
   selectedTab.value = tab;
   if (route.query.tagId !== undefined || route.query.tab !== undefined) {
-    const { tagId: _, tab: __, ...query } = route.query;
+    const { tagId: _, tab: __, page: ___, ...query } = route.query;
     void router.replace({ query: { ...query, tab } });
   }
 }
@@ -86,7 +91,21 @@ const {
   appliedPeriod, draftPeriod,
   openingRange, removeOpeningRange,
   filteredPopups, listStatus, listError, refreshList, nextCursor, moreLoading, moreError, loadMore, removeFilter, selectRegion, selectCategory,
+  pageNumber, pageLocation, hasNextPage,
 } = browse;
+usePopchiveSeo({
+  ...PAGE_SEO['/places'],
+  title: () => `팝업스토어 모아보기${pageNumber.value > 1 ? ` - ${pageNumber.value}페이지` : ''} | THE PLAVE`,
+  noindex: () => !!listError.value || hasPlacesSeoFilters(route.query),
+  nofollow: () => !!listError.value,
+});
+const pageEvent = useRequestEvent();
+if (pageEvent && listError.value) {
+  const status = listError.value.statusCode;
+  setResponseStatus(pageEvent, status === 404 || status === 400 ? status : 503);
+  pageEvent.node.res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  if (status !== 404 && status !== 400) pageEvent.node.res.setHeader('Retry-After', '60');
+}
 const periodPresets = [
   { mode: 'all', label: '전체' }, { mode: 'today', label: '오늘' }, { mode: 'sevenDays', label: '일주일' },
 ] as const;
@@ -150,7 +169,7 @@ async function onSelectCategory(tagId: number) {
   interestOrigin = copyFilters(appliedFilters.value);
   try {
     // Record Explore as the origin so browser Back returns to the category section.
-    const { tagId: _, tab: __, ...query } = route.query;
+    const { tagId: _, tab: __, page: ___, ...query } = route.query;
     await router.replace({ query: { ...query, tab: 'explore' } });
     await router.push({ query: { ...query, tab: 'all', tagId: String(tagId) } });
     await nextTick();
@@ -520,6 +539,12 @@ function formatPeriod(popup: PlacePopup) {
       </div>
     </section>
 
+    <nav v-if="!listError && listStatus === 'success'" class="places-page-links" aria-label="팝업 목록 페이지">
+      <NuxtLink v-if="pageNumber > 1" :to="pageLocation(pageNumber - 1)" :prefetch="false" rel="prev">이전 페이지</NuxtLink>
+      <span aria-current="page">{{ pageNumber }}페이지</span>
+      <NuxtLink v-if="hasNextPage" :to="pageLocation(pageNumber + 1)" :prefetch="false" rel="next">다음 페이지</NuxtLink>
+    </nav>
+
     <section
       v-show="selectedTab === 'explore'"
       id="places-panel-explore"
@@ -797,6 +822,9 @@ function formatPeriod(popup: PlacePopup) {
 .places-card__location svg { flex-shrink: 0; }
 .places-card__location span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .places-card__tags { display: flex; align-items: center; gap: 4px; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.places-page-links { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 24px; color: var(--ds-secondary); font-size: 13px; }
+.places-page-links a { padding: 8px 12px; border: 1px solid var(--ds-border); border-radius: var(--ds-radius-8); color: var(--ds-text); }
+.places-page-links a:hover { background: var(--ds-surface); }
 .places-card__image-state {
   position: absolute;
   inset: 0;

@@ -2,14 +2,18 @@ import type { PlaceListQuery } from '../../../shared/types/places'
 import { PLACE_PAGE_SIZE } from '#shared/types/places'
 import { endingSoonToday } from '../../../shared/utils/endingSoon'
 import { getPlacesPage } from '../../utils/placesBrowse'
+import { getNumberedPlacesPage } from '../../utils/numberedPlaces'
 import { isValidDateRange } from '#shared/utils/placeDatePeriod'
+import { placesPageNumber } from '#shared/utils/placesPagination'
 
-export default defineEventHandler(event => {
+export default defineEventHandler(async event => {
   setResponseHeader(event, 'cache-control', 'no-store')
   const raw = getQuery(event)
-  const allowed = ['countryCode', 'regionIds', 'tagIds', 'status', 'cursor', 'limit', 'sort', 'operatingFrom', 'operatingTo', 'openingFrom', 'openingTo']
+  const allowed = ['page', 'countryCode', 'regionIds', 'tagIds', 'status', 'cursor', 'limit', 'sort', 'operatingFrom', 'operatingTo', 'openingFrom', 'openingTo']
   const bad = () => { throw createError({ statusCode: 400, statusMessage: 'Invalid popup filters' }) }
   if (Object.keys(raw).some(key => !allowed.includes(key) || typeof raw[key] !== 'string')) bad()
+  const requestedPage = placesPageNumber(raw.page)
+  if (requestedPage === null || (raw.page !== undefined && raw.cursor !== undefined)) bad()
   if (raw.limit !== undefined && raw.limit !== String(PLACE_PAGE_SIZE)) bad()
   if (raw.sort !== undefined && !['LATEST', 'START_DATE_ASC', 'END_DATE_ASC'].includes(raw.sort as string)) bad()
   const query: PlaceListQuery = { limit: PLACE_PAGE_SIZE, sort: (raw.sort ?? 'LATEST') as PlaceListQuery['sort'] }
@@ -44,5 +48,9 @@ export default defineEventHandler(event => {
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(raw.cursor as string)) bad()
     query.cursor = raw.cursor as string
   }
-  return getPlacesPage(useRuntimeConfig(event).apiBase, query, endingSoonToday())
+  const apiBase = useRuntimeConfig(event).apiBase
+  const asOf = endingSoonToday()
+  // Infinite scroll still reads one cursor page through the original cache.
+  if (query.cursor !== undefined) return getPlacesPage(apiBase, query, asOf)
+  return getNumberedPlacesPage(apiBase, query, asOf, requestedPage!)
 })

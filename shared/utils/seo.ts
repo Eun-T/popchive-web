@@ -1,4 +1,7 @@
 import type { PopupDetail } from '../types/popup'
+import { placesPageNumber } from './placesPagination'
+import { hasPlacesSeoFilters, placesFilterCanonicalQuery } from './placesSeo'
+import type { PlacesSeoQuery } from './placesSeo'
 
 export const SITE_URL = 'https://theplave.co.kr'
 export const SITE_NAME = '더플레이브'
@@ -26,7 +29,20 @@ export function isPublicSeoPath(path: string): boolean {
   if (normalized in PAGE_SEO) return true
   return normalized.startsWith('/places/') && publicPopupId(normalized.slice('/places/'.length))
 }
-export function canonicalUrl(path: string): string { return `${SITE_URL}${normalizedSeoPath(path)}` }
+export function canonicalUrl(path: string, query?: PlacesSeoQuery): string {
+  const normalized = normalizedSeoPath(path)
+  if (normalized === '/places') {
+    const page = placesPageNumber(query?.page)
+    if (query && hasPlacesSeoFilters(query)) {
+      const params = placesFilterCanonicalQuery(query)
+      if (page && page > 1) params.set('page', String(page))
+      const search = params.toString()
+      return `${SITE_URL}/places${search ? `?${search}` : ''}`
+    }
+    return `${SITE_URL}/places${page && page > 1 ? `?page=${page}` : ''}`
+  }
+  return `${SITE_URL}${normalized}`
+}
 export function isProductionSeoHost(hostname: string, vercelEnv?: string, netlifyContext?: string): boolean {
   return !['preview', 'development'].includes(vercelEnv ?? '')
     && !['deploy-preview', 'branch-deploy', 'dev'].includes(netlifyContext ?? '')

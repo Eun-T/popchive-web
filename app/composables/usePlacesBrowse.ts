@@ -2,6 +2,7 @@ import type { PlaceListQuery, PlaceOptions, PlacePage, PlacePopup, PlaceStatus, 
 import { PLACE_PAGE_SIZE } from '#shared/types/places'
 import { emptyDatePeriod, isValidDateRange } from '#shared/utils/placeDatePeriod'
 import type { PlaceDatePeriod } from '#shared/utils/placeDatePeriod'
+import { MAX_PLACES_PAGE, placesPageNumber } from '#shared/utils/placesPagination'
 
 export type PlaceFilterKey = 'countryCode' | 'region' | 'category' | 'status'
 export type PlaceFilters = Record<PlaceFilterKey, string[]>
@@ -13,6 +14,19 @@ export function copyPlaceFilters(filters: PlaceFilters): PlaceFilters {
 export function usePlacesBrowse(initialCategory?: number) {
   const route = useRoute()
   const router = useRouter()
+  const initialFullPath = route.fullPath
+  const initialPageQuery = route.query.page
+  const initialPage = placesPageNumber(initialPageQuery)
+  if (initialPage === null) throw createError({ statusCode: 400, statusMessage: 'Invalid popup page' })
+  const pageNumber = computed(() => initialPage)
+  function routeIds(key: 'regionIds' | 'tagIds'): string[] {
+    const value = route.query[key]
+    if (value === undefined) return []
+    if (typeof value !== 'string' || !/^[1-9]\d{0,8}(,[1-9]\d{0,8}){0,29}$/.test(value)) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid popup filters' })
+    }
+    return [...new Set(value.split(','))]
+  }
   // URL-only start-date condition; it is independent of the modal's drafts.
   const openingRange = computed(() => {
     const from = route.query.openingFrom, to = route.query.openingTo
@@ -21,7 +35,7 @@ export function usePlacesBrowse(initialCategory?: number) {
     return { from, to, active: present && valid, invalid: present && !valid }
   })
   function removeOpeningRange() {
-    const { openingFrom: _, openingTo: __, ...query } = route.query
+    const { openingFrom: _, openingTo: __, page: ___, ...query } = route.query
     void router.replace({ query })
   }
   function periodFromRoute(): PlaceDatePeriod {
@@ -38,12 +52,12 @@ export function usePlacesBrowse(initialCategory?: number) {
       draftPeriod.value = { ...period }
     }
   })
-  const sort = ref<PlaceSort>('LATEST')
+  const sort = ref<PlaceSort>(['LATEST', 'START_DATE_ASC', 'END_DATE_ASC'].includes(String(route.query.sort)) ? route.query.sort as PlaceSort : 'LATEST')
   function statusFromRoute(): string[] {
     const status = route.query.status
     return typeof status === 'string' && ['ONGOING', 'UPCOMING', 'ENDED'].includes(status) ? [status] : []
   }
-  const appliedFilters = ref({ ...emptyPlaceFilters(), category: initialCategory === undefined ? [] : [String(initialCategory)], status: statusFromRoute() })
+  const appliedFilters = ref({ ...emptyPlaceFilters(), region: routeIds('regionIds'), category: route.query.tagIds !== undefined ? routeIds('tagIds') : initialCategory === undefined ? [] : [String(initialCategory)], status: statusFromRoute() })
   const draftFilters = ref(copyPlaceFilters(appliedFilters.value))
   watch(() => route.query.status, () => {
     const status = statusFromRoute()
@@ -51,23 +65,6 @@ export function usePlacesBrowse(initialCategory?: number) {
       appliedFilters.value = { ...appliedFilters.value, status }
       draftFilters.value.status = [...status]
     }
-  })
-  // Merge period and status changes in one navigation when the dialog applies both.
-  watch([appliedPeriod, () => appliedFilters.value.status[0]], ([period, status], [previousPeriod, previousStatus]) => {
-    const query = { ...route.query }
-    if (period !== previousPeriod) {
-      delete query.operatingFrom
-      delete query.operatingTo
-      if (period.mode !== 'all' && isValidDateRange(period.startDate, period.endDate)) {
-        query.operatingFrom = period.startDate!
-        query.operatingTo = period.endDate!
-      }
-    }
-    if (status !== previousStatus) {
-      if (status) query.status = status
-      else delete query.status
-    }
-    if (JSON.stringify(query) !== JSON.stringify(route.query)) void router.replace({ query })
   })
   const filtersQuery = computed<PlaceListQuery>(() => ({
     limit: PLACE_PAGE_SIZE,
@@ -82,19 +79,39 @@ export function usePlacesBrowse(initialCategory?: number) {
     ...(openingRange.value.active
       ? { openingFrom: openingRange.value.from as string, openingTo: openingRange.value.to as string } : {}),
   }))
-  const requestKey = computed(() => `places:all:${JSON.stringify(filtersQuery.value)}${openingRange.value.invalid ? ':invalid-opening-range' : ''}`)
+  function pageLocation(page: number) {
+    const query = { ...route.query }
+    for (const key of ['page', 'regionIds', 'tagIds', 'tagId', 'sort', 'status', 'operatingFrom', 'operatingTo']) delete query[key]
+    if (query.tab === 'explore') delete query.tab
+    for (const key of ['regionIds', 'tagIds', 'status', 'operatingFrom', 'operatingTo'] as const) {
+      const value = filtersQuery.value[key]
+      if (value) query[key] = value
+    }
+    if (sort.value !== 'LATEST') query.sort = sort.value
+    if (page > 1) query.page = String(page)
+    return { path: '/places', query }
+  }
+  watch(filtersQuery, () => {
+    // The old component must not rewrite a pagination navigation before it unmounts.
+    if (route.fullPath !== initialFullPath) return
+    resetPages()
+    void router.replace(pageLocation(1))
+  })
+  // places.vue remounts on query changes. Only that new instance fetches the
+  // committed URL; mutable UI filters must not issue intermediate requests here.
+  const initialFiltersQuery = { ...filtersQuery.value }
+  const initialFiltersKey = JSON.stringify(initialFiltersQuery)
+  const invalidOpeningRange = openingRange.value.invalid
+  const requestKey = `places:all:${initialFiltersKey}:page:${initialPage}${invalidOpeningRange ? ':invalid-opening-range' : ''}`
   const optionsRequest = useFetch<PlaceOptions>('/api/places/options', { key: 'places:options', retry: 0, dedupe: 'defer' })
   const pageRequest = useAsyncData(requestKey, async (_nuxtApp, { signal }) => {
-    // Capture the query before awaiting; never attribute a late response to a new sort.
-    const key = requestKey.value
-    const query = { ...filtersQuery.value }
+    const query = { ...initialFiltersQuery, page: String(initialPage) }
     // Never fall back to an unfiltered list for a malformed or incomplete URL.
-    if (openingRange.value.invalid) throw createError({ statusCode: 400, statusMessage: 'Invalid opening date range' })
+    if (invalidOpeningRange) throw createError({ statusCode: 400, statusMessage: 'Invalid opening date range' })
     const page = await $fetch<PlacePage>('/api/places/popups', { query, signal, retry: 0 })
-    return { ...page, requestKey: key }
+    return { ...page, requestKey }
   }, { server: true, dedupe: 'cancel' })
-  // Nuxt may carry previous data while a reactive key changes. Exclude it explicitly.
-  const firstPage = computed(() => pageRequest.data.value?.requestKey === requestKey.value ? pageRequest.data.value : undefined)
+  const firstPage = computed(() => pageRequest.data.value?.requestKey === requestKey ? pageRequest.data.value : undefined)
   const filterGroups = computed(() => [
     { key: 'region' as const, label: '지역', multiple: true, options: (optionsRequest.data.value?.regions ?? [])
       .filter(region => region.countryCode === 'KR')
@@ -133,29 +150,32 @@ export function usePlacesBrowse(initialCategory?: number) {
     moreError.value = false
     seenCursors.clear()
   }
-  watch(requestKey, resetPages, { flush: 'sync' })
   watch(pageRequest.data, resetPages)
   const filteredPopups = computed(() => [...new Map([...(firstPage.value?.items ?? []), ...appended.value].map(item => [item.id, item])).values()])
   async function loadMore() {
+    // A pending filter/navigation belongs to the next instance. Do not append
+    // its results to this instance's already rendered page.
+    if (route.fullPath !== initialFullPath || JSON.stringify(filtersQuery.value) !== initialFiltersKey) return
     const cursor = nextCursor.value
     if (disposed || !cursor || seenCursors.has(cursor) || moreLoading.value || pageRequest.status.value !== 'success') return
-    const version = generation, key = requestKey.value
+    const version = generation
     controller = new AbortController()
     moreLoading.value = true
     moreError.value = false
     try {
       const page = await $fetch<PlacePage>('/api/places/popups', {
-        query: { ...filtersQuery.value, cursor }, retry: 0, timeout: 15_000, signal: controller.signal,
+        query: { ...initialFiltersQuery, cursor }, retry: 0, timeout: 15_000, signal: controller.signal,
       })
-      if (disposed || version !== generation || key !== requestKey.value) return
+      if (disposed || version !== generation || route.fullPath !== initialFullPath
+        || JSON.stringify(filtersQuery.value) !== initialFiltersKey) return
       if (page.nextCursor && (page.nextCursor === cursor || seenCursors.has(page.nextCursor))) throw new Error('Repeated cursor')
       seenCursors.add(cursor)
       appended.value.push(...page.items)
       cursorOverride.value = page.nextCursor
     } catch {
-      if (!disposed && version === generation && key === requestKey.value) moreError.value = true
+      if (!disposed && version === generation) moreError.value = true
     } finally {
-      if (!disposed && version === generation && key === requestKey.value) moreLoading.value = false
+      if (!disposed && version === generation) moreLoading.value = false
     }
   }
   function toggleDraft(key: PlaceFilterKey, value: string) {
@@ -185,6 +205,8 @@ export function usePlacesBrowse(initialCategory?: number) {
   onBeforeUnmount(() => { disposed = true; controller?.abort() })
   return {
     ready: Promise.all([optionsRequest, pageRequest]), options: optionsRequest.data, optionsError: optionsRequest.error,
+    pageNumber, pageLocation,
+    hasNextPage: computed(() => !!firstPage.value?.nextCursor && pageNumber.value < MAX_PLACES_PAGE),
     sort, appliedFilters, draftFilters, appliedPeriod, draftPeriod, openingRange, removeOpeningRange, filterGroups, activeChips,
     appliedCount: computed(() => activeChips.value.length + (appliedPeriod.value.mode === 'all' ? 0 : 1) + (openingRange.value.active ? 1 : 0)),
     filteredPopups, listStatus: pageRequest.status, listError: pageRequest.error, refreshList: pageRequest.refresh,

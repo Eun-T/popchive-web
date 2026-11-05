@@ -3,7 +3,7 @@ import { canonicalUrl, PAGE_SEO } from '#shared/utils/seo'
 
 const route = useRoute()
 useState('seo:production', () => useRequestEvent()?.context.seoProduction === true)
-useHead({ htmlAttrs: { lang: 'ko' }, link: [{ key: 'canonical', rel: 'canonical', href: () => canonicalUrl(route.path) }] })
+useHead({ htmlAttrs: { lang: 'ko' }, link: [{ key: 'canonical', rel: 'canonical', href: () => canonicalUrl(route.path, route.query) }] })
 usePopchiveSeo(PAGE_SEO['/'])
 </script>
 
