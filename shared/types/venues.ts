@@ -13,6 +13,7 @@ export type VenuePopup = {
   startDate: string
   endDate: string | null
   coverImageUrl: string | null
+  tags: { id: number; name: string }[]
 }
 
 export type PopupVenuesResponse = { venues: PopupVenue[]; asOf: string; fetchedAt: number }

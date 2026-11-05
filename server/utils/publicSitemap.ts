@@ -1,15 +1,25 @@
 import { canonicalUrl, publicPopupId } from '../../shared/utils/seo'
+import { venuePath } from '../../shared/utils/venueRoutes'
+import { endingSoonToday } from '../../shared/utils/endingSoon'
+import { getPlacesVenues } from './placesVenues'
 
 export const SITEMAP_CACHE_SECONDS = 300
 export const SITEMAP_CHUNK_SIZE = 10_000
 export const getPublicSitemap = defineCachedFunction(async (apiBase: string) => {
   let response: unknown
+  let venuePaths: string[]
   try {
     // No limit/status/country: existing list mode returns ALL public popup rows, including ended ones.
-    response = await $fetch<unknown>('/api/popups', {
-      baseURL: apiBase, query: { languageCode: 'ko' }, method: 'GET', headers: { accept: 'application/json' },
-      credentials: 'omit', redirect: 'error', timeout: 15_000, retry: 0,
-    })
+    const [popups, venues] = await Promise.all([
+      $fetch<unknown>('/api/popups', {
+        baseURL: apiBase, query: { languageCode: 'ko' }, method: 'GET', headers: { accept: 'application/json' },
+        credentials: 'omit', redirect: 'error', timeout: 15_000, retry: 0,
+      }),
+      // Share the existing public venue cache; never fetch every venue's popup list here.
+      getPlacesVenues(apiBase, endingSoonToday()),
+    ])
+    response = popups
+    venuePaths = venues.venues.map(venue => venuePath(venue.venueId)).sort()
   } catch { throw createError({ statusCode: 503, statusMessage: 'Sitemap source unavailable' }) }
   if (!response || typeof response !== 'object' || Object.keys(response).length !== 1
     || !('popups' in response) || !Array.isArray(response.popups)) {
@@ -22,12 +32,14 @@ export const getPublicSitemap = defineCachedFunction(async (apiBase: string) => 
     }
     ids.add(row.publicId)
   }
-  const urls = ['/', '/places', '/map', ...[...ids].sort().map(id => `/places/${id}`)].map(canonicalUrl)
+  const urls = [...new Set([
+    '/', '/places', '/map', ...[...ids].sort().map(id => `/places/${id}`), ...venuePaths,
+  ].map(path => canonicalUrl(path)))]
   if (Math.ceil(urls.length / SITEMAP_CHUNK_SIZE) > 50_000) {
     throw createError({ statusCode: 503, statusMessage: 'Sitemap source exceeds index capacity' })
   }
   return { urls, fetchedAt: Date.now() }
-}, { name: 'public-sitemap-theplave-v2', maxAge: SITEMAP_CACHE_SECONDS, swr: false })
+}, { name: 'public-sitemap-theplave-v4', maxAge: SITEMAP_CACHE_SECONDS, swr: false })
 
 export function sitemapXml(urls: string[]): string {
   const escape = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&apos;')

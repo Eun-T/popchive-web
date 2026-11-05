@@ -1,4 +1,5 @@
 import type { PopupDetail } from '../types/popup'
+import { publicVenueId, venueIdFromSlug, venuePath } from './venueRoutes'
 import { placesPageNumber } from './placesPagination'
 import { hasPlacesSeoFilters, placesFilterCanonicalQuery } from './placesSeo'
 import type { PlacesSeoQuery } from './placesSeo'
@@ -27,6 +28,7 @@ export function normalizedSeoPath(path: string): string { return path.split(/[?#
 export function isPublicSeoPath(path: string): boolean {
   const normalized = normalizedSeoPath(path)
   if (normalized in PAGE_SEO) return true
+  if (normalized.startsWith('/venues/')) return publicVenueId(normalized.slice('/venues/'.length))
   return normalized.startsWith('/places/') && publicPopupId(normalized.slice('/places/'.length))
 }
 export function canonicalUrl(path: string, query?: PlacesSeoQuery): string {
@@ -41,7 +43,8 @@ export function canonicalUrl(path: string, query?: PlacesSeoQuery): string {
     }
     return `${SITE_URL}/places${page && page > 1 ? `?page=${page}` : ''}`
   }
-  return `${SITE_URL}${normalized}`
+  const venueId = normalized.startsWith('/venues/') ? venueIdFromSlug(normalized.slice('/venues/'.length)) : undefined
+  return `${SITE_URL}${venueId ? venuePath(venueId) : normalized}`
 }
 export function isProductionSeoHost(hostname: string, vercelEnv?: string, netlifyContext?: string): boolean {
   return !['preview', 'development'].includes(vercelEnv ?? '')

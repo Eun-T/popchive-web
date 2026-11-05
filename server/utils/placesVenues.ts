@@ -27,4 +27,4 @@ export const getPlacesVenuePopups = defineCachedFunction(async (
   const response = await readVenues(apiBase, venueId)
   try { return { ...normalizeVenuePopups(response, venueId, asOf), asOf, fetchedAt: Date.now() } }
   catch { throw createError({ statusCode: 502, statusMessage: 'Invalid venue popups response' }) }
-}, { name: 'public-places-venue-popups-v1', maxAge: 30, swr: false })
+}, { name: 'public-places-venue-popups-v2', maxAge: 30, swr: false })

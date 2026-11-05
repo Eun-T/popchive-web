@@ -24,6 +24,18 @@ function date(value: unknown): string {
   return value
 }
 
+function tags(value: unknown): VenuePopup['tags'] {
+  if (value == null) return []
+  if (!Array.isArray(value)) throw new Error('Invalid venue popup tags')
+  const unique = new Map<number, VenuePopup['tags'][number]>()
+  for (const item of value) {
+    const tag = record(item)
+    if (typeof tag.id !== 'number' || !Number.isSafeInteger(tag.id) || tag.id <= 0) throw new Error('Invalid tag ID')
+    unique.set(tag.id, { id: tag.id, name: text(tag.name) })
+  }
+  return [...unique.values()]
+}
+
 export function normalizePopupVenues(response: unknown): PopupVenue[] {
   const body = record(response)
   if (!Array.isArray(body.venues)) throw new Error('Invalid venue list')
@@ -56,7 +68,7 @@ export function normalizeVenuePopups(response: unknown, venueId: string, asOf: s
     const upcoming = startDate > asOf && (endDate === null || endDate >= asOf)
     if ((!ongoing && !upcoming) || (endDate !== null && endDate < startDate)) continue
     if (!unique.has(publicId)) unique.set(publicId, {
-      publicId, name: text(row.name), startDate, endDate, coverImageUrl: image(row.coverImageUrl),
+      publicId, name: text(row.name), startDate, endDate, coverImageUrl: image(row.coverImageUrl), tags: tags(row.tags),
     })
   }
   // This endpoint returns the entire list, not a page. Never show a partial result as the full count.
